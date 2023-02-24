@@ -1,0 +1,19 @@
+{
+  "name": "video-up",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/EddieAbbondanzio/video-up.git",
+  "author": "Ed Abbondanzio <me@eddieabbondanz.io>",
+  "license": "MIT",
+  "scripts": {
+    "start": "parcel",
+    "build": "parcel build"
+  },
+  "source": "src/index.html",
+  "devDependencies": {
+    "parcel": "^2.8.3"
+  },
+  "dependencies": {
+    "nanoid": "^4.0.1"
+  }
+}
