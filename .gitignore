@@ -106,4 +106,4 @@ dist
 .parcel-cache
 
 # Ignore sqlite dbs
-.db
+server/*.db
