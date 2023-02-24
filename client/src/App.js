@@ -39,7 +39,7 @@ export function App(props) {
       content = <div>{inviteURL}</div>;
     }
   } else {
-    content = <VideoChat remoteSDP={remoteSDP} />;
+    content = <VideoChat ws={ws} callID={callID} remoteSDP={remoteSDP} />;
   }
 
   return (
