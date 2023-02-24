@@ -6,7 +6,7 @@ const PORT = 8080;
 
 const MessageType = Object.freeze({
   RegisterCall: "register-call",
-  GetSDP: "get-sdp",
+  JoinCall: "join-call",
   VideoOffer: "video-offer",
 });
 
@@ -44,19 +44,26 @@ async function main() {
           console.log("Video offer");
           break;
 
-        case MessageType.GetSDP:
+        case MessageType.JoinCall:
           const requestedCallID = json.callID;
-          const foundSDP = await getSDP(db, requestedCallID);
-          console.log({ foundSDP });
+          ws.send(
+            JSON.stringify({
+              type: MessageType.JoinCall,
+              sdp: "LOL",
+            }),
+          );
 
-          if (foundSDP) {
-            ws.send(
-              JSON.stringify({
-                type: MessageType.GetSDP,
-                sdp: foundSDP.sdp,
-              }),
-            );
-          }
+          // const foundSDP = await getSDP(db, requestedCallID);
+          // console.log({ foundSDP });
+
+          // if (foundSDP) {
+          //   ws.send(
+          //     JSON.stringify({
+          //       type: MessageType.JoinCall,
+          //       sdp: foundSDP.sdp,
+          //     }),
+          //   );
+          // }
           break;
       }
     });

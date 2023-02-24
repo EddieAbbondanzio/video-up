@@ -1,13 +1,15 @@
-// import { nanoid } from "nanoid";
-
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { openWSConnection } from "./ws.js";
 
-const container = document.getElementById("app");
-const root = createRoot(container);
-root.render(<App />);
+async function main() {
+  const ws = await openWSConnection("ws://localhost:8080");
 
-// const CALL_ID_LENGTH = 8;
+  const container = document.getElementById("app");
+  const root = createRoot(container);
+  root.render(<App ws={ws} />);
+}
+main();
 
 // // https://gist.github.com/zziuni/3741933
 // const STUN_SERVERS = [
@@ -51,14 +53,6 @@ root.render(<App />);
 //   const pc = await createRtcPeerConnection(ws, callID, isHost, video, audio);
 // }
 // main();
-
-// async function openWSConnection(url) {
-//   const ws = new WebSocket(url);
-
-//   return new Promise(res => {
-//     ws.addEventListener("open", () => res(ws));
-//   });
-// }
 
 // async function createRtcPeerConnection(ws, callID, isHost, video, audio) {
 //   const pc = new RTCPeerConnection({});

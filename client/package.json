@@ -9,7 +9,7 @@
     "start": "parcel",
     "build": "parcel build"
   },
-  "source": "src/index.html",
+  "source": "static/index.html",
   "devDependencies": {
     "parcel": "^2.8.3",
     "process": "^0.11.10"
