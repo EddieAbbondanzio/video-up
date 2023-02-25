@@ -1,7 +1,7 @@
 import { WebSocketServer } from "ws";
 import { getDB, initDB } from "./db.js";
 import { nanoid } from "nanoid";
-import { createCall, getCallById } from "./calls.js";
+import { createCall, getCallById, updateCallGuestID } from "./calls.js";
 
 const PORT = 8080;
 const WS_ID_LENGTH = 16;
@@ -21,7 +21,8 @@ async function main() {
   });
 
   wss.on("connection", function connection(ws) {
-    // Web sockets are assigned unique IDs so we can track hosts.
+    // Web sockets are assigned unique IDs so we can selectively forward messages
+    // between each end of the video call.
     ws.id = nanoid(WS_ID_LENGTH);
 
     ws.on("error", console.error);
@@ -30,14 +31,20 @@ async function main() {
       const json = JSON.parse(data);
 
       switch (json.type) {
-        // Calls are registered in the database because the callee won't be listening
-        // immediately as they don't have the link uet.
         case MessageType.VideoOffer:
-          // If no sdp offer was received, it means the client is trying to join
-          // a call.
           if (json.sdp == null) {
             const call = await getCallById(db, json.callID);
             if (call == null) {
+              return;
+            }
+
+            console.log("===========");
+            console.log(call);
+            console.log("===========");
+
+            // When the guestID is set, it means there's already 2 people in the
+            // call and we don't want to let any others join.
+            if (call.guestID != null) {
               return;
             }
 
@@ -47,6 +54,8 @@ async function main() {
                 sdp: call.sdp,
               }),
             );
+
+            await updateCallGuestID(db, call, ws.id);
           } else {
             await createCall(db, ws.id, json.callID, json.sdp);
           }
