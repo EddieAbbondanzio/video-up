@@ -3,7 +3,7 @@ import { addHours } from "date-fns";
 const CALL_LIFETIME_HOURS = 1;
 
 export async function getCallById(db, callID) {
-  const call = await db.get("SELECT * FROM calls where call_id = ?", [callID]);
+  const call = await db.get("SELECT * FROM calls WHERE call_id = ?", [callID]);
 
   if (call == null) {
     return null;
@@ -26,7 +26,7 @@ export async function createCall(db, hostID, callID, sdp) {
     `
     INSERT INTO calls 
       (host_id, call_id, sdp, expires_at) 
-      values 
+      VALUES 
       (?, ?, ?, ?);
   `,
     [hostID, callID, stringifiedSDP, expiresAt],
@@ -47,7 +47,7 @@ export async function updateCallGuestID(db, call, guestID) {
     );
   }
 
-  await db.run(`UPDATE calls set guest_id = ? where call_id = ?`, [
+  await db.run(`UPDATE calls set guest_id = ? WHERE call_id = ?`, [
     guestID,
     call.callID,
   ]);

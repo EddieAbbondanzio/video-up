@@ -18,13 +18,12 @@ export function VideoChat(props) {
   }
 
   const peerConnection = useMemo(() => {
-    console.log("New RTCPeerConnection");
-
     return new RTCPeerConnection({
       iceservers: STUN_SERVERS.map(s => ({ urls: s })),
     });
   }, [callID]);
 
+  // Initialize
   useEffect(() => {
     if (!isHost) {
       sendJSON(ws, {
@@ -42,6 +41,7 @@ export function VideoChat(props) {
     }
   }, [callID, peerConnection]);
 
+  // Manage PeerConnection event listeners
   useEffect(() => {
     console.log("Subscribe to pc events");
 
@@ -68,8 +68,22 @@ export function VideoChat(props) {
       console.log("TRACK: ", ev);
     };
 
+    const onIceCandidate = ev => {
+      if (!ev.candidate) {
+        return;
+      }
+
+      console.log("Sending ICE candidate to server");
+      sendJSON(ws, {
+        type: MessageType.NewIceCandidate,
+        callID,
+        candidate: ev.candidate,
+      });
+    };
+
     peerConnection.addEventListener("negotiationneeded", onNegotiationNeeded);
     peerConnection.addEventListener("track", onTrack);
+    peerConnection.addEventListener("icecandidate", onIceCandidate);
 
     return () => {
       peerConnection.removeEventListener(
@@ -77,6 +91,7 @@ export function VideoChat(props) {
         onNegotiationNeeded,
       );
       peerConnection.removeEventListener("track", onTrack);
+      peerConnection.removeEventListener("icecandidate", onIceCandidate);
     };
   }, [ws, peerConnection]);
 
@@ -114,7 +129,6 @@ export function VideoChat(props) {
               sdp: peerConnection.localDescription,
             });
           })();
-
           break;
 
         case MessageType.VideoAnswer:
@@ -123,7 +137,11 @@ export function VideoChat(props) {
           }
           console.log("HOST GOT VIDEO ANSWER BACK!", json);
           peerConnection.setRemoteDescription(json.sdp);
+          break;
 
+        case MessageType.NewIceCandidate:
+          const candidate = new RTCIceCandidate(json.candidate);
+          peerConnection.addIceCandidate(candidate);
           break;
       }
     };

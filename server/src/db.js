@@ -41,4 +41,13 @@ export async function initDB(db) {
       expires_at DATETIME
     );
   `);
+
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS ice_candidates(
+      id INTEGER PRIMARY KEY,
+      call_id TEXT,
+      sender_id TEXT,
+      candidate TEXT
+    );
+  `);
 }
