@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Video } from "./Video.js";
+import { Audio } from "./Audio.js";
 import { MessageType, sendJSON } from "./ws.js";
 
 // https://gist.github.com/zziuni/3741933
@@ -183,58 +185,14 @@ export function VideoChat(props) {
     };
   }, [ws, peerConnection, isHost]);
 
-  // TODO: Clean up below!
-
-  const localVideoStream = useMemo(() => {
-    if (localVideoTrack == null) {
-      return null;
-    }
-
-    const ms = new MediaStream([localVideoTrack]);
-    return ms;
-  }, [localVideoTrack]);
-
-  const localVideoRef = useRef();
-  if (localVideoRef.current != null && localVideoStream != null) {
-    localVideoRef.current.srcObject = localVideoStream;
-  }
-
-  const remoteVideoStream = useMemo(() => {
-    if (remoteVideoTrack == null) {
-      return null;
-    }
-
-    const ms = new MediaStream([remoteVideoTrack]);
-    return ms;
-  }, [remoteVideoTrack]);
-
-  const remoteVideoRef = useRef();
-  if (remoteVideoRef.current != null && remoteVideoStream != null) {
-    remoteVideoRef.current.srcObject = remoteVideoStream;
-  }
-
-  const remoteAudioStream = useMemo(() => {
-    if (remoteAudioTrack == null) {
-      return null;
-    }
-
-    const ms = new MediaStream([remoteAudioTrack]);
-    return ms;
-  }, [remoteAudioTrack]);
-
-  const remoteAudioRef = useRef();
-  if (remoteAudioRef.current != null && remoteAudioStream != null) {
-    remoteAudioRef.current.srcObject = remoteAudioStream;
-  }
-
   return (
     <div>
       <div>
-        <video ref={localVideoRef} autoPlay={true} playsInline={true} />
+        <Video track={localVideoTrack} />
       </div>
       <div>
-        <video ref={remoteVideoRef} autoPlay={true} playsInline={true} />
-        <audio ref={remoteAudioRef} autoPlay={true} />
+        <Video track={remoteVideoTrack} />
+        <Audio track={remoteAudioTrack} />
       </div>
     </div>
   );
