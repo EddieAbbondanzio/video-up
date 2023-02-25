@@ -3,6 +3,7 @@ export const MessageType = Object.freeze({
   VideoOffer: "video-offer",
   VideoAnswer: "video-answer",
   NewIceCandidate: "new-ice-candidate",
+  ParticipantLeft: "participant-left",
 });
 
 export async function openWSConnection(url) {

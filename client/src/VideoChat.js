@@ -206,6 +206,12 @@ export function VideoChat(props) {
             peerConnection.addIceCandidate(candidate);
           }
           break;
+
+        case MessageType.ParticipantLeft:
+          console.log("Other participant left!");
+          setRemoteVideoTrack(null);
+          setRemoteAudioTrack(null);
+          break;
       }
     };
 

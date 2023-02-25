@@ -15,6 +15,7 @@ const MessageType = Object.freeze({
   VideoOffer: "video-offer",
   VideoAnswer: "video-answer",
   NewIceCandidate: "new-ice-candidate",
+  ParticipantLeft: "participant-left",
 });
 
 async function main() {
@@ -70,6 +71,8 @@ async function main() {
           } else {
             await createCall(db, ws.id, json.callID, json.sdp);
           }
+
+          ws.callID = json.callID;
           break;
 
         case MessageType.VideoAnswer:
@@ -79,6 +82,7 @@ async function main() {
           }
 
           const hostWS = getClientWebSocketById(wss, call.hostID);
+          console.log("Video answer will be sent back to host: ", hostWS);
           sendJSON(hostWS, { type: MessageType.VideoAnswer, sdp: json.sdp });
           break;
 
@@ -108,15 +112,54 @@ async function main() {
           break;
       }
     });
+
+    // Listen for web socket close event so we can notify other end of call if
+    // one participant leaves.
+    ws.on("close", async () => {
+      // If the web socket didn't have a call ID set it wasn't actively in a call.
+      if (ws.callID == null) {
+        return;
+      }
+
+      const call = await getCallById(db, ws.callID);
+      if (call == null) {
+        return;
+      }
+
+      const senderID = ws.id;
+      const receiverID = [call.guestID, call.hostID].find(id => id != senderID);
+      if (receiverID == null) {
+        return;
+      }
+
+      const receiverWS = getClientWebSocketById(wss, receiverID);
+      sendJSON(receiverWS, {
+        type: MessageType.ParticipantLeft,
+      });
+
+      // TODO: Unset host / guest id in call here
+    });
   });
 }
-main();
 
-function sendJSON(ws, obj) {
+if (!process.env === "test") {
+  main();
+}
+
+export function sendJSON(ws, obj) {
+  if (ws == null) {
+    throw new Error("ws is null");
+  }
+
   ws.send(JSON.stringify(obj));
 }
 
-function getClientWebSocketById(wss, id) {
+export function getClientWebSocketById(wss, id) {
   const clients = Array.from(wss.clients.values());
-  return clients.find(ws => ws.id === id);
+  const ws = clients.find(ws => ws.id === id);
+  if (ws == null) {
+    throw new Error(`No websocket with ID (${id}) was found.`);
+  }
+
+  return ws;
 }
