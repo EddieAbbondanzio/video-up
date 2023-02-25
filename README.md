@@ -25,3 +25,8 @@ The project is divided into two parts:
 Both can be initialized using `yarn` and then `yarn start` to begin running them.
 
 The client will be live on `http://localhost:1234` and the server will be at `http:localhost:8080`.
+
+## Resources
+
+- [MDN signaling and video calling tutorial](https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Signaling_and_video_calling)
+- [WebRTC for the curious](https://webrtcforthecurious.com/)
