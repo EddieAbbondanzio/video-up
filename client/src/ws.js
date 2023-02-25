@@ -15,6 +15,5 @@ export async function openWSConnection(url) {
 
 export async function sendJSON(ws, msg) {
   const jsonString = JSON.stringify(msg);
-  console.log("GOING TO SEND: ", jsonString);
   ws.send(jsonString);
 }

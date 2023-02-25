@@ -23,6 +23,9 @@ export function VideoChat(props) {
     });
   }, [callID]);
 
+  const [localVideoTrack, setLocalVideoTrack] = useState(null);
+  const [localAudioTrack, setLocalAudioTrack] = useState(null);
+
   // Initialize
   useEffect(() => {
     if (!isHost) {
@@ -31,29 +34,28 @@ export function VideoChat(props) {
         callID,
       });
     } else {
-      console.log("Start host video/audio");
       // TODO: Pull to function?
       (async () => {
         const { video, audio } = await startLocalVideoAndAudio();
         peerConnection.addTrack(video);
         peerConnection.addTrack(audio);
+
+        setLocalVideoTrack(video);
+        setLocalAudioTrack(audio);
       })();
     }
   }, [callID, peerConnection]);
 
   // Manage PeerConnection event listeners
   useEffect(() => {
-    console.log("Subscribe to pc events");
-
     // Notify signaling server of our SDP offer so it can pass the offer to the
     // callee when they join.
     const onNegotiationNeeded = async () => {
-      console.log("SDP offer created. Notifying server...");
-
+      console.log("negotiationneeded");
       if (isHost) {
         const offer = await peerConnection.createOffer();
+        console.log("setLocalDescription (host)");
         await peerConnection.setLocalDescription(offer);
-        console.log("OFFER IS OF TYPE: ", offer);
 
         await sendJSON(ws, {
           type: MessageType.VideoOffer,
@@ -73,7 +75,6 @@ export function VideoChat(props) {
         return;
       }
 
-      console.log("Sending ICE candidate to server");
       sendJSON(ws, {
         type: MessageType.NewIceCandidate,
         callID,
@@ -81,9 +82,19 @@ export function VideoChat(props) {
       });
     };
 
+    const onConnectionStateChange = ev => {
+      console.log("===============================");
+      console.log("connection State Change: ", ev);
+      console.log("===============================");
+    };
+
     peerConnection.addEventListener("negotiationneeded", onNegotiationNeeded);
     peerConnection.addEventListener("track", onTrack);
     peerConnection.addEventListener("icecandidate", onIceCandidate);
+    peerConnection.addEventListener(
+      "connectionstatechange",
+      onConnectionStateChange,
+    );
 
     return () => {
       peerConnection.removeEventListener(
@@ -92,6 +103,10 @@ export function VideoChat(props) {
       );
       peerConnection.removeEventListener("track", onTrack);
       peerConnection.removeEventListener("icecandidate", onIceCandidate);
+      peerConnection.removeEventListener(
+        "connectionstatechange",
+        onConnectionStateChange,
+      );
     };
   }, [ws, peerConnection]);
 
@@ -110,16 +125,20 @@ export function VideoChat(props) {
           // Client needs to create local SDP answer and return it back to host
           // TODO: Pull this to a function
           (async () => {
-            console.log("Client received video offer");
             const desc = new RTCSessionDescription(json.sdp);
 
+            console.log("setRemoteDescription (client)");
             await peerConnection.setRemoteDescription(desc);
 
             const { video, audio } = await startLocalVideoAndAudio();
             peerConnection.addTrack(video);
             peerConnection.addTrack(audio);
 
+            setLocalVideoTrack(video);
+            setLocalAudioTrack(audio);
+
             const answer = await peerConnection.createAnswer();
+            console.log("setLocalDescription (client)");
             await peerConnection.setLocalDescription(answer);
 
             // Alert signal server of our answer so it can be passed to the host.
@@ -135,11 +154,12 @@ export function VideoChat(props) {
           if (!isHost) {
             return;
           }
-          console.log("HOST GOT VIDEO ANSWER BACK!", json);
+          console.log("setRemoteDescription (host)");
           peerConnection.setRemoteDescription(json.sdp);
           break;
 
         case MessageType.NewIceCandidate:
+          console.log("addIceCandidate ", isHost ? "(host)" : "(client)");
           const candidate = new RTCIceCandidate(json.candidate);
           peerConnection.addIceCandidate(candidate);
           break;
@@ -153,7 +173,27 @@ export function VideoChat(props) {
     };
   }, [ws, peerConnection, isHost]);
 
-  return <div>VIDEO!</div>;
+  const localVideoStream = useMemo(() => {
+    if (localVideoTrack == null) {
+      return null;
+    }
+
+    const ms = new MediaStream([localVideoTrack]);
+    return ms;
+  }, [localVideoTrack]);
+
+  const localVideoRef = useRef();
+  if (localVideoRef.current != null && localVideoStream != null) {
+    localVideoRef.current.srcObject = localVideoStream;
+  }
+
+  console.log("Curr ice state: ", peerConnection.iceConnectionState);
+
+  return (
+    <div>
+      <video ref={localVideoRef} autoPlay={true} playsInline={true} />
+    </div>
+  );
 }
 
 async function startLocalVideoAndAudio() {
