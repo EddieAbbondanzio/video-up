@@ -15,6 +15,8 @@ Some things that could be improved on later on include
 - Ability to change video / audio sources while on a call.
 - Ability to leave room without having to close the tab.
 
+In terms of approach there's some refactoring that should be done to change how call participants are tracked. It seems odd to track them under `hostID`, `guestID`, and a more scalable approach such as a `call_participants` table should be explored.
+
 ## Dev
 
 The project is divided into two parts:

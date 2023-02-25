@@ -237,7 +237,7 @@ export function VideoChat(props) {
 
 async function startLocalVideoAndAudio() {
   const mediaStream = await navigator.mediaDevices.getUserMedia({
-    video: true,
+    video: { facingMode: "user" },
     audio: true,
   });
 

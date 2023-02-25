@@ -82,7 +82,6 @@ async function main() {
           }
 
           const hostWS = getClientWebSocketById(wss, call.hostID);
-          console.log("Video answer will be sent back to host: ", hostWS);
           sendJSON(hostWS, { type: MessageType.VideoAnswer, sdp: json.sdp });
           break;
 
