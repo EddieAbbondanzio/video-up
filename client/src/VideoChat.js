@@ -26,6 +26,9 @@ export function VideoChat(props) {
   const [localVideoTrack, setLocalVideoTrack] = useState(null);
   const [localAudioTrack, setLocalAudioTrack] = useState(null);
 
+  const [remoteVideoTrack, setRemoteVideoTrack] = useState(null);
+  const [remoteAudioTrack, setRemoteAudioTrack] = useState(null);
+
   // Initialize
   useEffect(() => {
     if (!isHost) {
@@ -65,9 +68,16 @@ export function VideoChat(props) {
       }
     };
 
-    const onTrack = ev => {
-      // TODO: Add tracks to HTML to start playing them.
-      console.log("TRACK: ", ev);
+    const onTrack = ({ track }) => {
+      switch (track.kind) {
+        case "video":
+          setRemoteVideoTrack(track);
+          break;
+
+        case "audio":
+          setRemoteAudioTrack(track);
+          break;
+      }
     };
 
     const onIceCandidate = ev => {
@@ -173,6 +183,8 @@ export function VideoChat(props) {
     };
   }, [ws, peerConnection, isHost]);
 
+  // TODO: Clean up below!
+
   const localVideoStream = useMemo(() => {
     if (localVideoTrack == null) {
       return null;
@@ -187,11 +199,43 @@ export function VideoChat(props) {
     localVideoRef.current.srcObject = localVideoStream;
   }
 
-  console.log("Curr ice state: ", peerConnection.iceConnectionState);
+  const remoteVideoStream = useMemo(() => {
+    if (remoteVideoTrack == null) {
+      return null;
+    }
+
+    const ms = new MediaStream([remoteVideoTrack]);
+    return ms;
+  }, [remoteVideoTrack]);
+
+  const remoteVideoRef = useRef();
+  if (remoteVideoRef.current != null && remoteVideoStream != null) {
+    remoteVideoRef.current.srcObject = remoteVideoStream;
+  }
+
+  const remoteAudioStream = useMemo(() => {
+    if (remoteAudioTrack == null) {
+      return null;
+    }
+
+    const ms = new MediaStream([remoteAudioTrack]);
+    return ms;
+  }, [remoteAudioTrack]);
+
+  const remoteAudioRef = useRef();
+  if (remoteAudioRef.current != null && remoteAudioStream != null) {
+    remoteAudioRef.current.srcObject = remoteAudioStream;
+  }
 
   return (
     <div>
-      <video ref={localVideoRef} autoPlay={true} playsInline={true} />
+      <div>
+        <video ref={localVideoRef} autoPlay={true} playsInline={true} />
+      </div>
+      <div>
+        <video ref={remoteVideoRef} autoPlay={true} playsInline={true} />
+        <audio ref={remoteAudioRef} autoPlay={true} />
+      </div>
     </div>
   );
 }
