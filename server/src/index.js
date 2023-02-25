@@ -132,17 +132,19 @@ async function main() {
         return;
       }
 
-      const receiverWS = getClientWebSocketById(wss, receiverID);
-      sendJSON(receiverWS, {
-        type: MessageType.ParticipantLeft,
-      });
-
-      // TODO: Unset host / guest id in call here
+      // Attempt to notify other end of the call. We soft fail if we can't find
+      // their websocket because they may have already left the call.
+      const receiverWS = getClientWebSocketById(wss, receiverID, true);
+      if (receiverWS != null) {
+        sendJSON(receiverWS, {
+          type: MessageType.ParticipantLeft,
+        });
+      }
     });
   });
 }
 
-if (!process.env === "test") {
+if (process.env.NODE_ENV !== "test") {
   main();
 }
 
@@ -154,10 +156,11 @@ export function sendJSON(ws, obj) {
   ws.send(JSON.stringify(obj));
 }
 
-export function getClientWebSocketById(wss, id) {
+export function getClientWebSocketById(wss, id, optional = false) {
   const clients = Array.from(wss.clients.values());
   const ws = clients.find(ws => ws.id === id);
-  if (ws == null) {
+
+  if (ws == null && !optional) {
     throw new Error(`No websocket with ID (${id}) was found.`);
   }
 

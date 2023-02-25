@@ -21,6 +21,12 @@ test("getClientWebSocketById", () => {
     getClientWebSocketById(wss, "4").toThrow(/No websocket with ID 4/),
   );
 
+  expect(() =>
+    getClientWebSocketById(wss, "4", true).not.toThrow(
+      /No websocket with ID 4/,
+    ),
+  );
+
   const ws1 = getClientWebSocketById(wss, "1");
   expect(ws1.id).toBe("1");
 });
