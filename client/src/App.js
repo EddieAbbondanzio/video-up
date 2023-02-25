@@ -23,13 +23,19 @@ export function App(props) {
     setInviteURL(`${url.href}?${CALL_ID_SEARCH_PARAM}=${cID}`);
   }
 
+  let [userClickedJoin, setUserClickedJoin] = useState(isHost);
+
   return (
     <div className="fc fg1">
       <h1 className="asc">VideoUp</h1>
-      <div className="fc fg1">
-        {inviteURL}
-        <VideoChat ws={ws} callID={callID} isHost={isHost} />
-      </div>
+      <div className="fc fg1">{inviteURL}</div>
+      {userClickedJoin && <VideoChat ws={ws} callID={callID} isHost={isHost} />}
+      {!userClickedJoin && (
+        <div>
+          Click to start the video chat:
+          <button onClick={() => setUserClickedJoin(true)}>Join</button>
+        </div>
+      )}
     </div>
   );
 }
