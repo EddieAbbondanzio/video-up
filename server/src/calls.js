@@ -24,11 +24,9 @@ export async function createCall(db, hostID, callID, sdp) {
 
   await db.run(
     `
-    INSERT INTO calls 
-      (host_id, call_id, sdp, expires_at) 
-      VALUES 
-      (?, ?, ?, ?);
-  `,
+    INSERT INTO calls (host_id, call_id, sdp, expires_at) 
+    VALUES (?, ?, ?, ?);
+    `,
     [hostID, callID, stringifiedSDP, expiresAt],
   );
 
@@ -47,12 +45,11 @@ export async function updateCallGuestID(db, call, guestID) {
     );
   }
 
-  await db.run(`UPDATE calls set guest_id = ? WHERE call_id = ?`, [
+  await db.run(`UPDATE calls SET guest_id = ? WHERE call_id = ?`, [
     guestID,
     call.callID,
   ]);
 
   call.guestID = guestID;
-  console.log("Updated guest id!", guestID);
   return call;
 }

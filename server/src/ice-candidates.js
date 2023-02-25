@@ -16,10 +16,8 @@ export async function createIceCandidate(db, callID, senderID, candidate) {
 
   await db.run(
     `
-    INSERT INTO ice_candidates
-    (call_id, sender_id, candidate)
-    VALUES
-    (?, ?, ?)
+    INSERT INTO ice_candidates (call_id, sender_id, candidate)
+    VALUES (?, ?, ?);
     `,
     [callID, senderID, stringifiedCandidate],
   );
