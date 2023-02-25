@@ -31,15 +31,13 @@ export function VideoChat(props) {
   const [remoteVideoTrack, setRemoteVideoTrack] = useState(null);
   const [remoteAudioTrack, setRemoteAudioTrack] = useState(null);
 
+  const iceCandidates = useRef([]);
+
   // Initialize
   useEffect(() => {
     if (!isHost) {
-      sendJSON(ws, {
-        type: MessageType.VideoOffer,
-        callID,
-      });
+      sendJSON(ws, { type: MessageType.VideoOffer, callID });
     } else {
-      // TODO: Pull to function?
       (async () => {
         const { video, audio } = await startLocalVideoAndAudio();
         peerConnection.addTrack(video);
@@ -71,14 +69,17 @@ export function VideoChat(props) {
     };
 
     const onTrack = ({ track }) => {
+      console.log("Remote track received: ", track.kind);
+
       switch (track.kind) {
         case "video":
           setRemoteVideoTrack(track);
           break;
-
         case "audio":
           setRemoteAudioTrack(track);
           break;
+        default:
+          throw new Error(`Unsupported video track kind: ${track.kind}`);
       }
     };
 
@@ -135,12 +136,21 @@ export function VideoChat(props) {
           }
 
           // Client needs to create local SDP answer and return it back to host
-          // TODO: Pull this to a function
           (async () => {
             const desc = new RTCSessionDescription(json.sdp);
 
             console.log("setRemoteDescription (client)");
             await peerConnection.setRemoteDescription(desc);
+
+            const candidates = iceCandidates.current;
+            if (candidates.length === 0) {
+              return;
+            }
+
+            for (const c of candidates) {
+              peerConnection.addIceCandidate(new RTCIceCandidate(c));
+            }
+            iceCandidates.current = [];
 
             const { video, audio } = await startLocalVideoAndAudio();
             peerConnection.addTrack(video);
@@ -163,17 +173,38 @@ export function VideoChat(props) {
           break;
 
         case MessageType.VideoAnswer:
+          // Guest doesn't handle video answers since it's the original sender.
           if (!isHost) {
             return;
           }
-          console.log("setRemoteDescription (host)");
-          peerConnection.setRemoteDescription(json.sdp);
+
+          (async () => {
+            await peerConnection.setRemoteDescription(json.sdp);
+
+            const candidates = iceCandidates.current;
+            if (candidates.length === 0) {
+              return;
+            }
+
+            for (const c of candidates) {
+              peerConnection.addIceCandidate(new RTCIceCandidate(c));
+            }
+            iceCandidates.current = [];
+          })();
           break;
 
         case MessageType.NewIceCandidate:
           console.log("addIceCandidate ", isHost ? "(host)" : "(client)");
-          const candidate = new RTCIceCandidate(json.candidate);
-          peerConnection.addIceCandidate(candidate);
+
+          // N.B. Firefox throws an error if we add an ICE candidate before the
+          // remote description so we backlog them if we haven't set the remote
+          // description yet.
+          if (peerConnection.remoteDescription == null) {
+            iceCandidates.current.push(json.candidate);
+          } else {
+            const candidate = new RTCIceCandidate(json.candidate);
+            peerConnection.addIceCandidate(candidate);
+          }
           break;
       }
     };
