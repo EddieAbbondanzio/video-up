@@ -6,6 +6,7 @@ import { createCall, getCallById, updateCallGuestID } from "./calls.js";
 const PORT = 8080;
 const WS_ID_LENGTH = 16;
 
+// Keep in sync with front-end definition
 const MessageType = Object.freeze({
   VideoOffer: "video-offer",
   VideoAnswer: "video-answer",
@@ -38,28 +39,17 @@ async function main() {
               return;
             }
 
-            console.log("===========");
-            console.log(call);
-            console.log("===========");
-
             // When the guestID is set, it means there's already 2 people in the
             // call and we don't want to let any others join.
             if (call.guestID != null) {
               return;
             }
 
-            ws.send(
-              JSON.stringify({
-                type: MessageType.VideoOffer,
-                sdp: call.sdp,
-              }),
-            );
-
+            sendJSON(ws, { type: MessageType.VideoOffer, sdp: call.sdp });
             await updateCallGuestID(db, call, ws.id);
           } else {
             await createCall(db, ws.id, json.callID, json.sdp);
           }
-
           break;
 
         case MessageType.VideoAnswer:
@@ -69,19 +59,17 @@ async function main() {
           }
 
           const hostWS = getClientWebSocketById(wss, call.hostID);
-          hostWS.send(
-            JSON.stringify({
-              type: MessageType.VideoAnswer,
-              sdp: json.sdp,
-            }),
-          );
-
+          sendJSON(hostWS, { type: MessageType.VideoAnswer, sdp: json.sdp });
           break;
       }
     });
   });
 }
 main();
+
+function sendJSON(ws, obj) {
+  ws.send(JSON.stringify(obj));
+}
 
 function getClientWebSocketById(wss, id) {
   const clients = Array.from(wss.clients.values());
