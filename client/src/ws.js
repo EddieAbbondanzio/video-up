@@ -1,34 +1,20 @@
 // Keep in sync with server side definition
 export const MessageType = Object.freeze({
-  RegisterCall: "register-call",
-  JoinCall: "join-call",
+  VideoOffer: "video-offer",
+  VideoAnswer: "video-answer",
+  NewIceCandidate: "new-ice-candidate",
 });
 
 export async function openWSConnection(url) {
   const ws = new WebSocket(url);
 
   return new Promise(res => {
-    const wrapper = {
-      sendMessage(msg) {
-        ws.send(JSON.stringify(msg));
-
-        return {
-          onResponse(cb) {
-            const onMessage = response => {
-              const json = JSON.parse(response.data);
-
-              if (json.type === msg.type) {
-                cb(json);
-                ws.removeEventListener("message", onMessage);
-              }
-            };
-
-            ws.addEventListener("message", onMessage);
-          },
-        };
-      },
-    };
-
-    ws.addEventListener("open", () => res(wrapper));
+    ws.addEventListener("open", () => res(ws));
   });
+}
+
+export async function sendJSON(ws, msg) {
+  const jsonString = JSON.stringify(msg);
+  console.log("GOING TO SEND: ", jsonString);
+  ws.send(jsonString);
 }

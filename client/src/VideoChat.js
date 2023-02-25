@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { MessageType, sendJSON } from "./ws.js";
 
-// // https://gist.github.com/zziuni/3741933
+// https://gist.github.com/zziuni/3741933
 const STUN_SERVERS = [
   "stun.l.google.com:19302",
   "stun1.l.google.com:19302",
@@ -10,70 +11,141 @@ const STUN_SERVERS = [
 ];
 
 export function VideoChat(props) {
-  const { ws, callID, remoteSDP } = props;
+  const { ws, callID, isHost } = props;
 
   if (callID == null) {
     throw new Error("callID was null");
   }
-  if (remoteSDP == null) {
-    throw new Error("remoteSDP was null");
-  }
 
-  const [pc, setPC] = useState(null);
+  const peerConnection = useMemo(() => {
+    console.log("New RTCPeerConnection");
+
+    return new RTCPeerConnection({
+      iceservers: STUN_SERVERS.map(s => ({ urls: s })),
+    });
+  }, [callID]);
+
   useEffect(() => {
-    (async () => {
-      console.log("Init video / audio");
-      const pc = await createRtcPeerConnection(ws);
+    if (!isHost) {
+      sendJSON(ws, {
+        type: MessageType.VideoOffer,
+        callID,
+      });
+    } else {
+      console.log("Start host video/audio");
+      // TODO: Pull to function?
+      (async () => {
+        const { video, audio } = await startLocalVideoAndAudio();
+        peerConnection.addTrack(video);
+        peerConnection.addTrack(audio);
+      })();
+    }
+  }, [callID, peerConnection]);
 
-      const [video, audio] = await getVideoAndAudioTracks();
-      pc.addTrack(video);
-      pc.addTrack(audio);
+  useEffect(() => {
+    console.log("Subscribe to pc events");
 
-      setPC(pc);
-    })();
-  }, [remoteSDP]);
+    // Notify signaling server of our SDP offer so it can pass the offer to the
+    // callee when they join.
+    const onNegotiationNeeded = async () => {
+      console.log("SDP offer created. Notifying server...");
+
+      if (isHost) {
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        console.log("OFFER IS OF TYPE: ", offer);
+
+        await sendJSON(ws, {
+          type: MessageType.VideoOffer,
+          callID,
+          sdp: peerConnection.localDescription,
+        });
+      }
+    };
+
+    const onTrack = ev => {
+      // TODO: Add tracks to HTML to start playing them.
+      console.log("TRACK: ", ev);
+    };
+
+    peerConnection.addEventListener("negotiationneeded", onNegotiationNeeded);
+    peerConnection.addEventListener("track", onTrack);
+
+    return () => {
+      peerConnection.removeEventListener(
+        "negotiationneeded",
+        onNegotiationNeeded,
+      );
+      peerConnection.removeEventListener("track", onTrack);
+    };
+  }, [ws, peerConnection]);
+
+  // Listen for WebSocket messages from the signaling server
+  useEffect(() => {
+    const onMessage = ev => {
+      const json = JSON.parse(ev.data);
+
+      switch (json.type) {
+        case MessageType.VideoOffer:
+          // Host doesn't need to handle video offers since it's the original sender.
+          if (isHost) {
+            return;
+          }
+
+          // Client needs to create local SDP answer and return it back to host
+          // TODO: Pull this to a function
+          (async () => {
+            console.log("Client received video offer");
+            const desc = new RTCSessionDescription(json.sdp);
+
+            await peerConnection.setRemoteDescription(desc);
+
+            const { video, audio } = await startLocalVideoAndAudio();
+            peerConnection.addTrack(video);
+            peerConnection.addTrack(audio);
+
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+
+            // Alert signal server of our answer so it can be passed to the host.
+            await sendJSON(ws, {
+              type: MessageType.VideoAnswer,
+              callID,
+              sdp: peerConnection.localDescription,
+            });
+          })();
+
+          break;
+
+        case MessageType.VideoAnswer:
+          if (!isHost) {
+            return;
+          }
+          console.log("HOST GOT VIDEO ANSWER BACK!", json);
+          peerConnection.setRemoteDescription(json.sdp);
+
+          break;
+      }
+    };
+
+    ws.addEventListener("message", onMessage);
+
+    return () => {
+      ws.removeEventListener("message", onMessage);
+    };
+  }, [ws, peerConnection, isHost]);
 
   return <div>VIDEO!</div>;
 }
 
-async function createRtcPeerConnection(ws) {
-  const pc = new RTCPeerConnection({});
-
-  // Listen for when we find an ICE candidate so we can notify the other peer.
-  pc.addEventListener("icecandidate", ev => {
-    console.log("ICE CANDIDATE: ", ev);
-  });
-
-  // Listen for incoming tracks
-  pc.addEventListener("track", ev => {
-    console.log("TRACK: ", ev);
-  });
-
-  // Listen for when we need to restart the connection process.
-  // (negotiationneeded is triggered when we add tracks to the stream)
-  pc.addEventListener("negotiationneeded", async () => {
-    console.log("Negotiation needed!");
-    const offer = pc.createOffer();
-    await pc.setLocalDescription(offer);
-  });
-
-  // Optionals
-  // TODO: Decide if needed.
-  pc.addEventListener("iceconnectionstatechange", ev => {
-    console.log("ICE STATE CHANGE: ", ev);
-  });
-
-  return pc;
-}
-
-async function getVideoAndAudioTracks() {
+async function startLocalVideoAndAudio() {
   const mediaStream = await navigator.mediaDevices.getUserMedia({
     video: true,
     audio: true,
   });
 
-  const [videoTrack] = mediaStream.getVideoTracks();
-  const [audioTrack] = mediaStream.getAudioTracks();
+  const [video] = mediaStream.getVideoTracks();
+  const [audio] = mediaStream.getAudioTracks();
 
-  return [videoTrack, audioTrack];
+  return { video, audio };
 }

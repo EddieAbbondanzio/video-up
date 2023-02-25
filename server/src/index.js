@@ -1,24 +1,29 @@
 import { WebSocketServer } from "ws";
-import { addHours } from "date-fns";
 import { getDB, initDB } from "./db.js";
+import { nanoid } from "nanoid";
+import { createCall, getCallById } from "./calls.js";
 
 const PORT = 8080;
+const WS_ID_LENGTH = 16;
 
 const MessageType = Object.freeze({
-  RegisterCall: "register-call",
-  JoinCall: "join-call",
   VideoOffer: "video-offer",
+  VideoAnswer: "video-answer",
+  NewIceCandidate: "new-ice-candidate",
 });
 
 async function main() {
   const db = await getDB();
   await initDB(db);
-  console.log(await db.get("select * from calls"));
 
-  const wss = new WebSocketServer({ port: PORT });
-  console.log(`Listening on ${PORT}`);
+  const wss = new WebSocketServer({ port: PORT, clientTracking: true }, () => {
+    console.log(`Listening on ${PORT}`);
+  });
 
   wss.on("connection", function connection(ws) {
+    // Web sockets are assigned unique IDs so we can track hosts.
+    ws.id = nanoid(WS_ID_LENGTH);
+
     ws.on("error", console.error);
 
     ws.on("message", async function message(data) {
@@ -27,43 +32,41 @@ async function main() {
       switch (json.type) {
         // Calls are registered in the database because the callee won't be listening
         // immediately as they don't have the link uet.
-        case MessageType.RegisterCall:
-          console.log("REGISTER CALL: ", json);
-          const { callID, sdp } = json;
-          const expiresAt = addHours(new Date(), 1);
-
-          await insertCall(db, {
-            callID,
-            sdp,
-            expiresAt,
-            wasConnected: false,
-          });
-          break;
-
         case MessageType.VideoOffer:
-          console.log("Video offer");
+          // If no sdp offer was received, it means the client is trying to join
+          // a call.
+          if (json.sdp == null) {
+            const call = await getCallById(db, json.callID);
+            if (call == null) {
+              return;
+            }
+
+            ws.send(
+              JSON.stringify({
+                type: MessageType.VideoOffer,
+                sdp: call.sdp,
+              }),
+            );
+          } else {
+            await createCall(db, ws.id, json.callID, json.sdp);
+          }
+
           break;
 
-        case MessageType.JoinCall:
-          const requestedCallID = json.callID;
-          ws.send(
+        case MessageType.VideoAnswer:
+          const call = await getCallById(db, json.callID);
+          if (call == null) {
+            return;
+          }
+
+          const hostWS = getClientWebSocketById(wss, call.hostID);
+          hostWS.send(
             JSON.stringify({
-              type: MessageType.JoinCall,
-              sdp: "LOL",
+              type: MessageType.VideoAnswer,
+              sdp: json.sdp,
             }),
           );
 
-          // const foundSDP = await getSDP(db, requestedCallID);
-          // console.log({ foundSDP });
-
-          // if (foundSDP) {
-          //   ws.send(
-          //     JSON.stringify({
-          //       type: MessageType.JoinCall,
-          //       sdp: foundSDP.sdp,
-          //     }),
-          //   );
-          // }
           break;
       }
     });
@@ -71,39 +74,7 @@ async function main() {
 }
 main();
 
-// TODO: Wrap db in promises instead of this...
-
-async function getSDP(db, callID) {
-  return new Promise((res, rej) => {
-    db.get(`SELECT * from calls where call_id = ?`, [callID], (err, row) => {
-      if (err) {
-        rej(err);
-      } else {
-        res(row);
-      }
-    });
-  });
-}
-
-async function insertCall(db, call) {
-  return new Promise((res, rej) => {
-    const { callID, sdp, expiresAt, wasConnected } = call;
-
-    db.run(
-      `
-      INSERT INTO calls 
-        (call_id, sdp, expires_at, link_was_opened) 
-        values 
-        (?, ?, ?, ?);
-    `,
-      [callID, sdp, expiresAt, wasConnected],
-      err => {
-        if (err) {
-          rej(err);
-        } else {
-          res();
-        }
-      },
-    );
-  });
+function getClientWebSocketById(wss, id) {
+  const clients = Array.from(wss.clients.values());
+  return clients.find(ws => ws.id === id);
 }

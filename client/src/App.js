@@ -1,7 +1,6 @@
 import { nanoid } from "nanoid";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { VideoChat } from "./VideoChat.js";
-import { MessageType } from "./ws.js";
 
 const CALL_ID_LENGTH = 8;
 const CALL_ID_SEARCH_PARAM = "callID";
@@ -14,38 +13,23 @@ export function App(props) {
     url.searchParams.get(CALL_ID_SEARCH_PARAM),
   );
   let [isHost] = useState(callID == null);
-  let [remoteSDP, setRemoteSDP] = useState(null);
+  let [inviteURL, setInviteURL] = useState(null);
+  console.log("Is host: ", isHost);
 
   if (isHost && callID == null) {
-    setCallID(nanoid(CALL_ID_LENGTH));
-  }
+    const cID = nanoid(CALL_ID_LENGTH);
 
-  useEffect(() => {
-    if (isHost) {
-      // Notify signaling server of the call we want to host
-      ws.sendMessage({ type: MessageType.RegisterCall, callID });
-    } else {
-      // Ask signaling server for the host's SDP
-      ws.sendMessage({ type: MessageType.JoinCall, callID }).onResponse(
-        ({ sdp }) => setRemoteSDP(sdp),
-      );
-    }
-  }, [isHost, callID]);
-
-  let content = null;
-  if (remoteSDP == null) {
-    if (isHost) {
-      const inviteURL = `${url.href}?${CALL_ID_SEARCH_PARAM}=${callID}`;
-      content = <div>{inviteURL}</div>;
-    }
-  } else {
-    content = <VideoChat ws={ws} callID={callID} remoteSDP={remoteSDP} />;
+    setCallID(cID);
+    setInviteURL(`${url.href}?${CALL_ID_SEARCH_PARAM}=${cID}`);
   }
 
   return (
     <div className="fc fg1">
       <h1 className="asc">VideoUp</h1>
-      <div className="fc fg1">{content}</div>
+      <div className="fc fg1">
+        {inviteURL}
+        <VideoChat ws={ws} callID={callID} isHost={isHost} />
+      </div>
     </div>
   );
 }

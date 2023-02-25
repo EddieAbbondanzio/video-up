@@ -34,10 +34,10 @@ export async function initDB(db) {
   await db.run(`
     CREATE TABLE IF NOT EXISTS calls(
       id INTEGER PRIMARY KEY,
+      host_id TEXT,
       call_id TEXT,
       sdp TEXT,
-      expires_at DATETIME,
-      link_was_opened BOOLEAN
+      expires_at DATETIME
     );
   `);
 }
