@@ -36,7 +36,7 @@ export async function initDB(db) {
       id INTEGER PRIMARY KEY,
       host_id TEXT,
       guest_id TEXT,
-      call_id TEXT,
+      call_id TEXT UNIQUE,
       sdp TEXT,
       expires_at DATETIME
     );

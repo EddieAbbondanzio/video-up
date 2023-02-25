@@ -23,6 +23,9 @@ export function App(props) {
     setInviteURL(`${url.href}?${CALL_ID_SEARCH_PARAM}=${cID}`);
   }
 
+  // N.B. Because of browser auto play policies we have to get the guest to
+  // interact with the page before we can play video so we add a join button to
+  // get them to click.
   let [userClickedJoin, setUserClickedJoin] = useState(isHost);
 
   return (

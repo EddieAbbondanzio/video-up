@@ -3,7 +3,10 @@ import { addHours } from "date-fns";
 const CALL_LIFETIME_HOURS = 1;
 
 export async function getCallById(db, callID) {
-  const call = await db.get("SELECT * FROM calls WHERE call_id = ?", [callID]);
+  const call = await db.get(
+    "SELECT * FROM calls WHERE call_id = ? and expires_at > ?",
+    [callID, Date.now()],
+  );
 
   if (call == null) {
     return null;
