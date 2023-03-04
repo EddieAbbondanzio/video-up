@@ -1,55 +1,14 @@
-//@ts-nocheck
-
-import sqlite3 from "sqlite3";
-import { promisify } from "node:util";
+import * as path from "path";
+import { DataSource } from "typeorm";
+import { SnakeNamingStrategy } from "typeorm-naming-strategies";
 
 export const DB_FILE_NAME = "./calls.db";
 
-export async function getDB() {
-  const db = await openDB(DB_FILE_NAME);
-
-  db.run = promisify(db.run);
-  db.get = promisify(db.get);
-  db.all = promisify(db.all);
-  db.each = promisify(db.each);
-  db.exec = promisify(db.exec);
-  db.prepare = promisify(db.prepare);
-  db.serialize = promisify(db.serialize);
-  db.parallelize = promisify(db.parallelize);
-
-  return db;
-}
-
-async function openDB(fileName) {
-  return new Promise((res, rej) => {
-    const db = new sqlite3.Database(fileName, err => {
-      if (err) {
-        rej(err);
-      } else {
-        res(db);
-      }
-    });
-  });
-}
-
-export async function initDB(db) {
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS calls(
-      id INTEGER PRIMARY KEY,
-      host_id TEXT,
-      guest_id TEXT,
-      call_id TEXT UNIQUE,
-      sdp TEXT,
-      expires_at DATETIME
-    );
-  `);
-
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS ice_candidates(
-      id INTEGER PRIMARY KEY,
-      call_id TEXT,
-      sender_id TEXT,
-      candidate TEXT
-    );
-  `);
-}
+export const dataSource = new DataSource({
+  type: "sqlite",
+  database: DB_FILE_NAME,
+  entities: [path.join(__dirname, "entities/*.ts")],
+  namingStrategy: new SnakeNamingStrategy(),
+  logging: true,
+  synchronize: process.env.NODE_ENV !== "production",
+});

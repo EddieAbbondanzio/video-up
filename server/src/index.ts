@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { WebSocketServer } from "ws";
-import { getDB, initDB } from "./db";
+import { dataSource } from "./db";
 import { createCall, getCallById, updateCallGuestID } from "./calls";
 import { createIceCandidate, getIceCandidatesForCall } from "./ice-candidates";
 import { nanoid } from "nanoid";
@@ -18,128 +18,131 @@ const MessageType = Object.freeze({
 });
 
 async function main() {
-  const db = await getDB();
-  await initDB(db);
+  console.log("Data source: ", dataSource);
+  await dataSource.initialize();
 
-  const wss = new WebSocketServer({ port: PORT, clientTracking: true }, () => {
-    console.log(`Listening on ${PORT}`);
-  });
+  // const db = await getDB();
+  // await initDB(db);
 
-  wss.on("connection", function connection(ws) {
-    // Web sockets are assigned unique IDs so we can selectively forward messages
-    // between each end of the video call.
-    ws.id = nanoid(WS_ID_LENGTH);
+  // const wss = new WebSocketServer({ port: PORT, clientTracking: true }, () => {
+  //   console.log(`Listening on ${PORT}`);
+  // });
 
-    ws.on("error", console.error);
+  // wss.on("connection", function connection(ws) {
+  //   // Web sockets are assigned unique IDs so we can selectively forward messages
+  //   // between each end of the video call.
+  //   ws.id = nanoid(WS_ID_LENGTH);
 
-    ws.on("message", async function message(data) {
-      const json = JSON.parse(data);
-      let call;
+  //   ws.on("error", console.error);
 
-      switch (json.type) {
-        case MessageType.VideoOffer:
-          // No SDP offer means it's a guest joining
-          if (json.sdp == null) {
-            call = await getCallById(db, json.callID);
-            if (call == null) {
-              return;
-            }
+  //   ws.on("message", async function message(data) {
+  //     const json = JSON.parse(data);
+  //     let call;
 
-            // When the guestID is set, it means there's already 2 people in the
-            // call and we don't want to let any others join.
-            if (call.guestID != null) {
-              return;
-            }
+  //     switch (json.type) {
+  //       case MessageType.VideoOffer:
+  //         // No SDP offer means it's a guest joining
+  //         if (json.sdp == null) {
+  //           call = await getCallById(db, json.callID);
+  //           if (call == null) {
+  //             return;
+  //           }
 
-            sendJSON(ws, { type: MessageType.VideoOffer, sdp: call.sdp });
-            await updateCallGuestID(db, call, ws.id);
+  //           // When the guestID is set, it means there's already 2 people in the
+  //           // call and we don't want to let any others join.
+  //           if (call.guestID != null) {
+  //             return;
+  //           }
 
-            // Forward any ICE candidates we cached off from the host
-            const iceCandidates = await getIceCandidatesForCall(
-              db,
-              call.callID,
-              call.hostID,
-            );
+  //           sendJSON(ws, { type: MessageType.VideoOffer, sdp: call.sdp });
+  //           await updateCallGuestID(db, call, ws.id);
 
-            for (const iceCandidate of iceCandidates) {
-              sendJSON(ws, {
-                type: MessageType.NewIceCandidate,
-                candidate: iceCandidate.candidate,
-              });
-            }
-          } else {
-            await createCall(db, ws.id, json.callID, json.sdp);
-          }
+  //           // Forward any ICE candidates we cached off from the host
+  //           const iceCandidates = await getIceCandidatesForCall(
+  //             db,
+  //             call.callID,
+  //             call.hostID,
+  //           );
 
-          ws.callID = json.callID;
-          break;
+  //           for (const iceCandidate of iceCandidates) {
+  //             sendJSON(ws, {
+  //               type: MessageType.NewIceCandidate,
+  //               candidate: iceCandidate.candidate,
+  //             });
+  //           }
+  //         } else {
+  //           await createCall(db, ws.id, json.callID, json.sdp);
+  //         }
 
-        case MessageType.VideoAnswer:
-          call = await getCallById(db, json.callID);
-          if (call == null) {
-            return;
-          }
+  //         ws.callID = json.callID;
+  //         break;
 
-          const hostWS = getClientWebSocketById(wss, call.hostID);
-          sendJSON(hostWS, { type: MessageType.VideoAnswer, sdp: json.sdp });
-          break;
+  //       case MessageType.VideoAnswer:
+  //         call = await getCallById(db, json.callID);
+  //         if (call == null) {
+  //           return;
+  //         }
 
-        case MessageType.NewIceCandidate:
-          call = await getCallById(db, json.callID);
-          if (call == null) {
-            return;
-          }
+  //         const hostWS = getClientWebSocketById(wss, call.hostID);
+  //         sendJSON(hostWS, { type: MessageType.VideoAnswer, sdp: json.sdp });
+  //         break;
 
-          const senderID = ws.id;
-          const receiverID = [call.guestID, call.hostID].find(
-            id => id != senderID,
-          );
+  //       case MessageType.NewIceCandidate:
+  //         call = await getCallById(db, json.callID);
+  //         if (call == null) {
+  //           return;
+  //         }
 
-          // If the other end is already known, immediately forward ICE candidates
-          if (receiverID != null) {
-            const receiverWS = getClientWebSocketById(wss, receiverID);
-            sendJSON(receiverWS, {
-              type: MessageType.NewIceCandidate,
-              candidate: json.candidate,
-            });
-          }
-          // Otherwise cache them off so we can forward them later on.
-          else {
-            await createIceCandidate(db, json.callID, senderID, json.candidate);
-          }
-          break;
-      }
-    });
+  //         const senderID = ws.id;
+  //         const receiverID = [call.guestID, call.hostID].find(
+  //           id => id != senderID,
+  //         );
 
-    // Listen for web socket close event so we can notify other end of call if
-    // one participant leaves.
-    ws.on("close", async () => {
-      // If the web socket didn't have a call ID set it wasn't actively in a call.
-      if (ws.callID == null) {
-        return;
-      }
+  //         // If the other end is already known, immediately forward ICE candidates
+  //         if (receiverID != null) {
+  //           const receiverWS = getClientWebSocketById(wss, receiverID);
+  //           sendJSON(receiverWS, {
+  //             type: MessageType.NewIceCandidate,
+  //             candidate: json.candidate,
+  //           });
+  //         }
+  //         // Otherwise cache them off so we can forward them later on.
+  //         else {
+  //           await createIceCandidate(db, json.callID, senderID, json.candidate);
+  //         }
+  //         break;
+  //     }
+  //   });
 
-      const call = await getCallById(db, ws.callID);
-      if (call == null) {
-        return;
-      }
+  //   // Listen for web socket close event so we can notify other end of call if
+  //   // one participant leaves.
+  //   ws.on("close", async () => {
+  //     // If the web socket didn't have a call ID set it wasn't actively in a call.
+  //     if (ws.callID == null) {
+  //       return;
+  //     }
 
-      const senderID = ws.id;
-      const receiverID = [call.guestID, call.hostID].find(id => id != senderID);
-      if (receiverID == null) {
-        return;
-      }
+  //     const call = await getCallById(db, ws.callID);
+  //     if (call == null) {
+  //       return;
+  //     }
 
-      // Attempt to notify other end of the call. We soft fail if we can't find
-      // their websocket because they may have already left the call.
-      const receiverWS = getClientWebSocketById(wss, receiverID, true);
-      if (receiverWS != null) {
-        sendJSON(receiverWS, {
-          type: MessageType.ParticipantLeft,
-        });
-      }
-    });
-  });
+  //     const senderID = ws.id;
+  //     const receiverID = [call.guestID, call.hostID].find(id => id != senderID);
+  //     if (receiverID == null) {
+  //       return;
+  //     }
+
+  //     // Attempt to notify other end of the call. We soft fail if we can't find
+  //     // their websocket because they may have already left the call.
+  //     const receiverWS = getClientWebSocketById(wss, receiverID, true);
+  //     if (receiverWS != null) {
+  //       sendJSON(receiverWS, {
+  //         type: MessageType.ParticipantLeft,
+  //       });
+  //     }
+  //   });
+  // });
 }
 
 if (process.env.NODE_ENV !== "test") {

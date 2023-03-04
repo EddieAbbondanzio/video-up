@@ -9,7 +9,10 @@
   },
   "dependencies": {
     "date-fns": "^2.29.3",
+    "reflect-metadata": "^0.1.13",
     "sqlite3": "^5.1.4",
+    "typeorm": "^0.3.12",
+    "typeorm-naming-strategies": "^4.1.0",
     "ws": "^8.12.1"
   },
   "devDependencies": {
