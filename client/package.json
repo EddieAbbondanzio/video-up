@@ -1,7 +1,6 @@
 {
   "name": "video-up",
   "version": "1.0.0",
-  "main": "index.js",
   "repository": "https://github.com/EddieAbbondanzio/video-up.git",
   "author": "Ed Abbondanzio <me@eddieabbondanz.io>",
   "license": "MIT",
@@ -17,6 +16,7 @@
   "dependencies": {
     "nanoid": "^4.0.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "typescript": "^4.9.5"
   }
 }

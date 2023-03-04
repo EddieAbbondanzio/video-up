@@ -1,6 +1,8 @@
+// @ts-nocheck
+
 import { createRoot } from "react-dom/client";
-import { App } from "./App";
-import { openWSConnection } from "./ws.js";
+import { App } from "./components/App";
+import { openWSConnection } from "./ws";
 
 async function main() {
   const ws = await openWSConnection("ws://localhost:8080");

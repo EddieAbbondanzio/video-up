@@ -1,10 +1,12 @@
+// @ts-nocheck
+
 // Keep in sync with server side definition
-export const MessageType = Object.freeze({
-  VideoOffer: "video-offer",
-  VideoAnswer: "video-answer",
-  NewIceCandidate: "new-ice-candidate",
-  ParticipantLeft: "participant-left",
-});
+export enum MessageType {
+  CreateRoom = "create-room",
+  ParticipantJoined = "participant-joined",
+  ParticipantLeft = "participant-left",
+  RoomClosed = "room-closed",
+}
 
 export async function openWSConnection(url) {
   const ws = new WebSocket(url);

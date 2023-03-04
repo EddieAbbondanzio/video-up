@@ -1,7 +1,9 @@
+// @ts-nocheck
+
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Video } from "./Video.js";
-import { Audio } from "./Audio.js";
-import { MessageType, sendJSON } from "./ws.js";
+import { Video } from "./Video";
+import { Audio } from "./Audio";
+import { MessageType, sendJSON } from "../ws";
 
 // https://gist.github.com/zziuni/3741933
 const STUN_SERVERS = [

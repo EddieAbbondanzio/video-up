@@ -1,6 +1,8 @@
+// @ts-nocheck
+
 import { nanoid } from "nanoid";
 import { useState } from "react";
-import { VideoChat } from "./VideoChat.js";
+import { VideoChat } from "./VideoChat";
 
 const CALL_ID_LENGTH = 8;
 const CALL_ID_SEARCH_PARAM = "callID";

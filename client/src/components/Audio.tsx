@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { useRef, useMemo } from "react";
 
 export function Audio(props) {
