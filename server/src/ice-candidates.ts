@@ -1,3 +1,5 @@
+//@ts-nocheck
+
 export async function getIceCandidatesForCall(db, callID, senderID) {
   const candidates = await db.all(
     "SELECT * FROM ice_candidates WHERE call_id = ? AND sender_id = ?",

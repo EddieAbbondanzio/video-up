@@ -1,3 +1,5 @@
+//@ts-nocheck
+
 import { addHours } from "date-fns";
 
 const CALL_LIFETIME_HOURS = 1;

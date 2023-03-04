@@ -1,5 +1,6 @@
-import { getClientWebSocketById, sendJSON } from "../src/index.js";
-import { jest } from "@jest/globals";
+//@ts-nocheck
+
+import { getClientWebSocketById, sendJSON } from "../src/index";
 
 test("sendJSON", () => {
   expect(() => sendJSON(null, {})).toThrow(/ws is null/);

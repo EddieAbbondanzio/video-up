@@ -1,11 +1,10 @@
+// @ts-nocheck
+
 import { WebSocketServer } from "ws";
-import { getDB, initDB } from "./db.js";
+import { getDB, initDB } from "./db";
+import { createCall, getCallById, updateCallGuestID } from "./calls";
+import { createIceCandidate, getIceCandidatesForCall } from "./ice-candidates";
 import { nanoid } from "nanoid";
-import { createCall, getCallById, updateCallGuestID } from "./calls.js";
-import {
-  createIceCandidate,
-  getIceCandidatesForCall,
-} from "./ice-candidates.js";
 
 const PORT = 8080;
 const WS_ID_LENGTH = 16;
