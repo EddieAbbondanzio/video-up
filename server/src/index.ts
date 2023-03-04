@@ -1,169 +1,260 @@
-// @ts-nocheck
-
-import { WebSocketServer } from "ws";
+import { Server, WebSocketServer, WebSocket } from "ws";
 import { dataSource } from "./db";
-import { createCall, getCallById, updateCallGuestID } from "./calls";
-import { createIceCandidate, getIceCandidatesForCall } from "./ice-candidates";
 import { nanoid } from "nanoid";
+import { Room } from "./entities/room";
+import { Participant } from "./entities/participant";
 
-const PORT = 8080;
-const WS_ID_LENGTH = 16;
+// The server is responsible for transmitting signaling between the participants
+// of a room and is fairly hands off. It only needs to keep track of the room's
+// state and the current list of participants to forward messages to.
 
 // Keep in sync with front-end definition
-const MessageType = Object.freeze({
-  VideoOffer: "video-offer",
-  VideoAnswer: "video-answer",
-  NewIceCandidate: "new-ice-candidate",
-  ParticipantLeft: "participant-left",
-});
+export enum MessageType {
+  CreateRoom = "create-room",
+  ParticipantJoined = "participant-joined",
+  ParticipantLeft = "participant-left",
+  RoomClosed = "room-closed",
+}
+
+export interface CreateRoomMessage {
+  type: MessageType.CreateRoom;
+  inviteURL: string;
+}
+
+export interface ParticipantJoinedMessage {
+  type: MessageType.ParticipantJoined;
+  participantID: string;
+}
+
+export interface ParticipantLeftMessage {
+  type: MessageType.ParticipantLeft;
+  participantID: string;
+}
+
+export interface RoomClosedMessage {
+  type: MessageType.RoomClosed;
+}
+
+export type Message =
+  | CreateRoomMessage
+  | ParticipantJoinedMessage
+  | ParticipantLeftMessage
+  | RoomClosedMessage;
+
+declare module "ws" {
+  interface WebSocket {
+    id: string;
+  }
+}
+
+export const PORT = 8080;
+export const WS_ID_LENGTH = 16;
+
+// Be careful setting this too high. We are running video data over P2P and this
+// gets expensive fast!
+export const ROOM_MAX_CAPACITY = 4;
 
 async function main() {
-  console.log("Data source: ", dataSource);
   await dataSource.initialize();
 
-  // const db = await getDB();
-  // await initDB(db);
+  const wss = new WebSocketServer({ port: PORT, clientTracking: true }, () => {
+    console.log(`Listening on ${PORT}`);
+  });
 
-  // const wss = new WebSocketServer({ port: PORT, clientTracking: true }, () => {
-  //   console.log(`Listening on ${PORT}`);
-  // });
+  wss.on("connection", async function connection(ws) {
+    // Web sockets are assigned unique IDs so we can selectively forward messages
+    // between each end of the video call.
+    ws.id = nanoid(WS_ID_LENGTH);
 
-  // wss.on("connection", function connection(ws) {
-  //   // Web sockets are assigned unique IDs so we can selectively forward messages
-  //   // between each end of the video call.
-  //   ws.id = nanoid(WS_ID_LENGTH);
+    const existingParticipant = await Participant.findOneBy({
+      websocketID: ws.id,
+    });
+    if (existingParticipant != null) {
+      throw new Error(
+        `New websocket already had existing participant (ID: ${existingParticipant.id})`,
+      );
+    }
 
-  //   ws.on("error", console.error);
+    const participant = new Participant();
+    participant.id = nanoid();
+    participant.websocketID = ws.id;
+    participant.isActive = true;
+    participant.isHost = false;
+    participant.room = null;
+    await participant.save();
 
-  //   ws.on("message", async function message(data) {
-  //     const json = JSON.parse(data);
-  //     let call;
+    ws.on("error", console.error);
 
-  //     switch (json.type) {
-  //       case MessageType.VideoOffer:
-  //         // No SDP offer means it's a guest joining
-  //         if (json.sdp == null) {
-  //           call = await getCallById(db, json.callID);
-  //           if (call == null) {
-  //             return;
-  //           }
+    ws.on("message", async function message(data) {
+      const message: Message = JSON.parse(data.toString());
 
-  //           // When the guestID is set, it means there's already 2 people in the
-  //           // call and we don't want to let any others join.
-  //           if (call.guestID != null) {
-  //             return;
-  //           }
+      // TODO: Add validation here.
 
-  //           sendJSON(ws, { type: MessageType.VideoOffer, sdp: call.sdp });
-  //           await updateCallGuestID(db, call, ws.id);
+      let sender = await Participant.findOne({
+        where: { websocketID: ws.id },
+        relations: { room: true },
+      });
 
-  //           // Forward any ICE candidates we cached off from the host
-  //           const iceCandidates = await getIceCandidatesForCall(
-  //             db,
-  //             call.callID,
-  //             call.hostID,
-  //           );
+      if (sender == null) {
+        return;
+      }
 
-  //           for (const iceCandidate of iceCandidates) {
-  //             sendJSON(ws, {
-  //               type: MessageType.NewIceCandidate,
-  //               candidate: iceCandidate.candidate,
-  //             });
-  //           }
-  //         } else {
-  //           await createCall(db, ws.id, json.callID, json.sdp);
-  //         }
+      switch (message.type) {
+        case MessageType.CreateRoom:
+          if (sender.room != null) {
+            return;
+          }
 
-  //         ws.callID = json.callID;
-  //         break;
+          await dataSource.manager.transaction(async txManager => {
+            sender!.isHost = true;
+            await txManager.save(sender);
 
-  //       case MessageType.VideoAnswer:
-  //         call = await getCallById(db, json.callID);
-  //         if (call == null) {
-  //           return;
-  //         }
+            const room = new Room();
+            room.id = nanoid();
+            room.isActive = true;
+            room.participants = [sender!];
+            await txManager.save(room);
+          });
 
-  //         const hostWS = getClientWebSocketById(wss, call.hostID);
-  //         sendJSON(hostWS, { type: MessageType.VideoAnswer, sdp: json.sdp });
-  //         break;
+          break;
 
-  //       case MessageType.NewIceCandidate:
-  //         call = await getCallById(db, json.callID);
-  //         if (call == null) {
-  //           return;
-  //         }
+        case MessageType.ParticipantJoined:
+          if (sender.room == null) {
+            return;
+          }
 
-  //         const senderID = ws.id;
-  //         const receiverID = [call.guestID, call.hostID].find(
-  //           id => id != senderID,
-  //         );
+          if (sender.room.participants.length > ROOM_MAX_CAPACITY) {
+            // TODO: Notify participant, along with reason why.
+            return;
+          }
 
-  //         // If the other end is already known, immediately forward ICE candidates
-  //         if (receiverID != null) {
-  //           const receiverWS = getClientWebSocketById(wss, receiverID);
-  //           sendJSON(receiverWS, {
-  //             type: MessageType.NewIceCandidate,
-  //             candidate: json.candidate,
-  //           });
-  //         }
-  //         // Otherwise cache them off so we can forward them later on.
-  //         else {
-  //           await createIceCandidate(db, json.callID, senderID, json.candidate);
-  //         }
-  //         break;
-  //     }
-  //   });
+          sender.room.participants.push(sender);
+          forwardMessageToOthersInRoom(
+            wss,
+            sender.room,
+            {
+              type: MessageType.ParticipantJoined,
+              participantID: sender.id,
+            },
+            sender,
+          );
+          break;
 
-  //   // Listen for web socket close event so we can notify other end of call if
-  //   // one participant leaves.
-  //   ws.on("close", async () => {
-  //     // If the web socket didn't have a call ID set it wasn't actively in a call.
-  //     if (ws.callID == null) {
-  //       return;
-  //     }
+        case MessageType.ParticipantLeft:
+          if (sender.room == null) {
+            return;
+          }
 
-  //     const call = await getCallById(db, ws.callID);
-  //     if (call == null) {
-  //       return;
-  //     }
+          await handleParticipantLeft(wss, sender);
+          break;
 
-  //     const senderID = ws.id;
-  //     const receiverID = [call.guestID, call.hostID].find(id => id != senderID);
-  //     if (receiverID == null) {
-  //       return;
-  //     }
+        case MessageType.RoomClosed:
+          if (sender.room == null) {
+            return;
+          }
 
-  //     // Attempt to notify other end of the call. We soft fail if we can't find
-  //     // their websocket because they may have already left the call.
-  //     const receiverWS = getClientWebSocketById(wss, receiverID, true);
-  //     if (receiverWS != null) {
-  //       sendJSON(receiverWS, {
-  //         type: MessageType.ParticipantLeft,
-  //       });
-  //     }
-  //   });
-  // });
+          forwardMessageToOthersInRoom(wss, sender.room, message, sender);
+          break;
+      }
+    });
+
+    // Listen for web socket close event so we can notify other end of call if
+    // one participant leaves.
+    ws.on("close", async function close() {
+      const participant = await Participant.findOne({
+        where: {
+          websocketID: ws.id,
+        },
+        relations: {
+          room: true,
+        },
+      });
+
+      // An inactive participant means we already know the user left the room,
+      // and there's nothing left to do.
+      if (participant == null || participant.isActive) {
+        return;
+      }
+
+      await handleParticipantLeft(wss, participant);
+    });
+  });
 }
 
 if (process.env.NODE_ENV !== "test") {
   main();
 }
 
-export function sendJSON(ws, obj) {
-  if (ws == null) {
-    throw new Error("ws is null");
-  }
+export function sendMessageToRoom(
+  wss: WebSocketServer,
+  room: Room,
+  message: Message,
+): void {
+  const webSocketClients = Array.from(wss.clients.values());
 
-  ws.send(JSON.stringify(obj));
+  for (const participant of room.participants) {
+    const ws = webSocketClients.find(ws => ws.id === participant.websocketID);
+    if (ws == null) {
+      throw new Error(
+        `No websocket found for participant (ID: ${participant.id})`,
+      );
+    }
+
+    ws.send(JSON.stringify(message));
+  }
 }
 
-export function getClientWebSocketById(wss, id, optional = false) {
-  const clients = Array.from(wss.clients.values());
-  const ws = clients.find(ws => ws.id === id);
+export function forwardMessageToOthersInRoom(
+  wss: WebSocketServer,
+  room: Room,
+  message: Message,
+  sender: Participant,
+): void {
+  const webSocketClients = Array.from(wss.clients.values());
+  const otherParticipants = room.participants.filter(p => p.id !== sender.id);
 
-  if (ws == null && !optional) {
-    throw new Error(`No websocket with ID (${id}) was found.`);
+  for (const participant of otherParticipants) {
+    const ws = webSocketClients.find(ws => ws.id === participant.websocketID);
+    if (ws == null) {
+      throw new Error(
+        `No websocket found for participant (ID: ${participant.id})`,
+      );
+    }
+
+    ws.send(JSON.stringify(message));
+  }
+}
+
+export async function handleParticipantLeft(
+  wss: WebSocketServer,
+  participant: Participant,
+): Promise<void> {
+  participant.isActive = false;
+  await participant.save();
+
+  // No room means the participant never joined a room.
+  const { room } = participant;
+  if (room == null) {
+    return;
   }
 
-  return ws;
+  // If host leaves, close the room
+  if (participant.isHost) {
+    room.isActive = false;
+    await room.save();
+
+    sendMessageToRoom(wss, room, {
+      type: MessageType.RoomClosed,
+    });
+  }
+  // Notify other participants that someone left.
+  else {
+    room.participants = room.participants.filter(p => p.id !== participant.id);
+    await room.save();
+
+    sendMessageToRoom(wss, room, {
+      type: MessageType.ParticipantLeft,
+      participantID: participant.id,
+    });
+  }
 }

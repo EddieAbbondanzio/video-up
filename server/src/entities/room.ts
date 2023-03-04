@@ -1,21 +1,13 @@
-import {
-  Entity,
-  JoinColumn,
-  OneToMany,
-  OneToOne,
-  PrimaryColumn,
-  PrimaryGeneratedColumn,
-} from "typeorm";
+import { BaseEntity, Column, Entity, OneToMany, PrimaryColumn } from "typeorm";
 import { Participant } from "./participant";
 
 @Entity({ withoutRowid: true })
-export class Room {
+export class Room extends BaseEntity {
   @PrimaryColumn({ type: "text" })
   id!: string;
 
-  @OneToOne(() => Participant)
-  @JoinColumn()
-  host!: Participant;
+  @Column({ type: "integer" })
+  isActive!: boolean;
 
   @OneToMany(() => Participant, participant => participant.room)
   participants!: Participant[];
