@@ -1,3 +1,4 @@
+import React from "react";
 import logo from "../../static/images/logo-white.png";
 import styled from "styled-components";
 

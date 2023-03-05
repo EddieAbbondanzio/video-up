@@ -1,3 +1,4 @@
+import React from "react";
 import styled from "styled-components";
 import stockPhoto from "../../static/images/stock-photo.png";
 
@@ -12,10 +13,10 @@ export function Welcome(props: WelcomeProps): JSX.Element {
         <Column className="is-justify-content-center">
           <CallToAction>
             <h1 className="title is-size-3-mobile is-size-2-tablet">
-              Live video meets for anyone
+              Live video calls for anyone
             </h1>
             <p className="subtitle is-size-6-mobile is-size-4-tablet">
-              Free to use P2P video meets that can be instantly joined via a
+              Free to use P2P video calls that can be instantly joined via a
               magic link for up to 4 participants.
             </p>
             <button

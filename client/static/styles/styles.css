@@ -1,4 +1,5 @@
-@import "../node_modules/bulma/css/bulma.css"; 
+@import "../../node_modules/bulma/css/bulma.css"; 
+@import "font-awesome.css";
 
 /* Make HTML height match screen height */
 html,

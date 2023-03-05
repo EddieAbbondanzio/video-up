@@ -1,3 +1,4 @@
+import React from "react";
 import { useEffect, useState } from "react";
 import { NavBar } from "./NavBar";
 import { VideoRoom } from "./VideoRoom";

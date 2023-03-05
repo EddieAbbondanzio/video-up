@@ -1,8 +1,8 @@
 // @ts-nocheck
-
+import React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Video } from "./Video";
-import { Audio } from "./Audio";
+import { Video } from "./old_Video";
+import { Audio } from "./old_Audio";
 import { MessageType, sendJSON } from "../ws";
 
 // https://gist.github.com/zziuni/3741933
