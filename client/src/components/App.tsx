@@ -1,13 +1,13 @@
-import { nanoid } from "nanoid";
-import { useState } from "react";
-import { VideoChat } from "./VideoChat";
 import { NavBar } from "./NavBar";
-import styled from "styled-components";
 
-const CALL_ID_LENGTH = 8;
-const CALL_ID_SEARCH_PARAM = "callID";
+// const CALL_ID_LENGTH = 8;
+// const CALL_ID_SEARCH_PARAM = "callID";
 
-export function App() {
+export interface AppProps {
+  ws: WebSocket;
+}
+
+export function App(props: AppProps) {
   // const { ws } = props;
   // let url = new URL(window.location.href);
 

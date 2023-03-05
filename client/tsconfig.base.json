@@ -11,6 +11,8 @@
     "strict": true,
     "strictNullChecks": true,
     "experimentalDecorators": true,
-    "jsxImportSource": "react"
+    "jsx": "react",
+    "jsxImportSource": "react",
+    "typeRoots" : ["node_modules/@types", "src/types"]
   },
 }
