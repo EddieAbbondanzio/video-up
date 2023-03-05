@@ -6,6 +6,9 @@ export class Room extends BaseEntity {
   @PrimaryColumn({ type: "text" })
   id!: string;
 
+  @Column({ type: "text" })
+  shareableID!: string;
+
   @Column({ type: "integer" })
   isActive!: boolean;
 

@@ -1,7 +1,11 @@
 import styled from "styled-components";
 import stockPhoto from "../../static/images/stock-photo.png";
 
-export function Welcome(): JSX.Element {
+export interface WelcomeProps {
+  onHost: () => void;
+}
+
+export function Welcome(props: WelcomeProps): JSX.Element {
   return (
     <div className="m-4 is-flex is-flex-grow-1">
       <div className="is-flex-tablet is-flex-direction-row">
@@ -14,7 +18,10 @@ export function Welcome(): JSX.Element {
               Free to use P2P video meets that can be instantly joined via a
               magic link for up to 4 participants.
             </p>
-            <button className="button is-primary is-medium">
+            <button
+              className="button is-primary is-medium"
+              onClick={props.onHost}
+            >
               Host a video meet
             </button>
           </CallToAction>
