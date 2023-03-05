@@ -150,6 +150,12 @@ async function main() {
             type: MessageType.JoinRoom,
             participantCount: room.participants.length,
           });
+
+          // Notify others in the room a new user joined.
+          sendResponseToOthersInRoom(wss, sender, {
+            type: MessageType.ParticipantJoined,
+            participantID: participant.id,
+          });
           break;
       }
     });
@@ -181,6 +187,31 @@ async function main() {
 
 if (process.env.NODE_ENV !== "test") {
   main();
+}
+
+export function sendResponseToOthersInRoom(
+  wss: WebSocketServer,
+  sender: Participant,
+  response: WebSocketResponse,
+) {
+  const webSocketClients = Array.from(wss.clients.values());
+
+  const { room } = sender;
+  if (room == null) {
+    return;
+  }
+
+  const otherParticipants = room.participants.filter(p => p.id !== sender.id);
+  for (const participant of otherParticipants) {
+    const ws = webSocketClients.find(ws => ws.id === participant.websocketID);
+    if (ws == null) {
+      throw new Error(
+        `No websocket found for participant (ID: ${participant.id})`,
+      );
+    }
+
+    sendResponse(ws, response);
+  }
 }
 
 export function sendResponseToRoom(
