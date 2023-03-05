@@ -23,10 +23,12 @@ export function VideoToolbar(props: VideoToolbarProps): JSX.Element {
     setIsMicMuted(!isMicMuted);
   };
 
-  const onLeaveRoomClick = () => {};
+  const onLeaveRoomClick = () => {
+    window.location.replace("/");
+  };
 
   let leaveButtonTitle = "";
-  if (props.isHost) {
+  if (isHost) {
     leaveButtonTitle =
       "Leaving room will end the call for every participant. (You are host)";
   }
@@ -50,7 +52,7 @@ export function VideoToolbar(props: VideoToolbarProps): JSX.Element {
         <VideoToolbarButton
           color="is-danger"
           icon="fas fa-sign-out-alt"
-          title="Leave video call"
+          title={leaveButtonTitle}
           onClick={onLeaveRoomClick}
         />
       </div>

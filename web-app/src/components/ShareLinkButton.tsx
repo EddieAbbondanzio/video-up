@@ -11,15 +11,14 @@ export interface ShareButtonProps {
 export function ShareButton(props: ShareButtonProps) {
   const { domain, roomID, isHost } = props;
   let link = "";
-  let disabled = roomID == null;
-  if (!disabled && roomID) {
+  if (roomID) {
     link = `${domain}${roomID}`;
   }
 
   // Only show share link by default to the host.
-  const [isActive, setIsActive] = useState(!disabled && isHost);
+  const [isActive, setIsActive] = useState(roomID && isHost);
   const onShareButtonClick = () => {
-    if (disabled) {
+    if (!roomID) {
       return;
     }
 
@@ -27,12 +26,16 @@ export function ShareButton(props: ShareButtonProps) {
   };
 
   const dropdownClasses = ["dropdown", "is-up"];
-  if (isActive && !disabled) {
+  if (isActive && roomID) {
     dropdownClasses.push("is-active");
   }
 
   const onClickToCopy = () => {
     navigator.clipboard.writeText(link);
+  };
+
+  const onClose = () => {
+    setIsActive(false);
   };
 
   return (
@@ -42,16 +45,18 @@ export function ShareButton(props: ShareButtonProps) {
           icon="fas fa-share-alt"
           title="Get link to share"
           onClick={onShareButtonClick}
-          state={isActive && !disabled ? "is-active" : undefined}
-          disabled={true}
+          state={isActive ? "is-active" : undefined}
         />
       </div>
       <div className="dropdown-menu mb-4" role="menu">
         <WideDropdownContent className="dropdown-content">
           <div className="dropdown-item">
-            <p className="mb-2">
-              Send this link to your friends so they can join:
-            </p>
+            <div className="is-flex is-flex-row is-justify-content-space-between">
+              <p className="mb-2">
+                Send this link to your friends so they can join:
+              </p>
+              <button className="delete is-small" onClick={onClose}></button>
+            </div>
 
             <div className="is-flex is-flex-row">
               <input className="input is-small" value={link} readOnly={true} />
