@@ -1,3 +1,5 @@
+import { WebSocketRequest } from "../../shared/src/ws";
+
 export async function openWSConnection(url: string): Promise<WebSocket> {
   const ws = new WebSocket(url);
 
@@ -6,7 +8,8 @@ export async function openWSConnection(url: string): Promise<WebSocket> {
   });
 }
 
-export function sendJSON(ws: WebSocket, msg: any): void {
-  const jsonString = JSON.stringify(msg);
+export function sendRequest(ws: WebSocket, req: WebSocketRequest): void {
+  console.log("SENDING REQUEST: ", req);
+  const jsonString = JSON.stringify(req);
   ws.send(jsonString);
 }

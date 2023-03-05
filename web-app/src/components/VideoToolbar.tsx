@@ -33,8 +33,8 @@ export function VideoToolbar(props: VideoToolbarProps): JSX.Element {
           onClick={onCameraButtonClick}
         />
         <VideoToolbarButton
-          icon={isMicMuted ? "fas fa-microphone" : "fas fa-microphone-slash"}
-          title={isMicMuted ? "Mute mic" : "Unmute mic"}
+          icon={isMicMuted ? "fas fa-microphone-slash" : "fas fa-microphone"}
+          title={isMicMuted ? "Unmute mic" : "Mute mic"}
           onClick={onMicButtonClick}
         />
       </div>

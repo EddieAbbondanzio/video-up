@@ -9,6 +9,6 @@ export const dataSource = new DataSource({
   database: DB_FILE_NAME,
   entities: [path.join(__dirname, "entities/*.ts")],
   namingStrategy: new SnakeNamingStrategy(),
-  logging: true,
+  // logging: true,
   synchronize: process.env.NODE_ENV !== "production",
 });

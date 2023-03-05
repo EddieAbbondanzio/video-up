@@ -1,4 +1,3 @@
-// Keep in sync with front-end definition
 export enum MessageType {
   CreateRoom = "create-room",
   JoinRoom = "join-room",
@@ -7,27 +6,54 @@ export enum MessageType {
   RoomClosed = "room-closed",
 }
 
-export interface CreateRoomMessage {
+// Participants send requests, the signaling server sends responses. (think HTTP)
+
+export interface CreateRoomRequest {
   type: MessageType.CreateRoom;
-  inviteURL: string;
 }
 
-export interface ParticipantJoinedMessage {
+export interface CreateRoomResponse {
+  type: MessageType.CreateRoom;
+  roomID: string;
+}
+
+export interface JoinRoomRequest {
+  type: MessageType.JoinRoom;
+  roomID: string;
+}
+
+export interface JoinRoomResponse {
+  type: MessageType.JoinRoom;
+  error?: string;
+}
+
+export interface ParticipantJoinedResponse {
   type: MessageType.ParticipantJoined;
   participantID: string;
 }
 
-export interface ParticipantLeftMessage {
+export interface ParticipantLeftResponse {
   type: MessageType.ParticipantLeft;
   participantID: string;
 }
 
-export interface RoomClosedMessage {
+export interface RoomClosedRequest {
   type: MessageType.RoomClosed;
 }
 
-export type Message =
-  | CreateRoomMessage
-  | ParticipantJoinedMessage
-  | ParticipantLeftMessage
-  | RoomClosedMessage;
+export interface RoomClosedResponse {
+  type: MessageType.RoomClosed;
+  reason: string;
+}
+
+export type WebSocketRequest =
+  | CreateRoomRequest
+  | JoinRoomRequest
+  | RoomClosedRequest;
+
+export type WebSocketResponse =
+  | CreateRoomResponse
+  | JoinRoomResponse
+  | ParticipantJoinedResponse
+  | ParticipantLeftResponse
+  | RoomClosedResponse;
