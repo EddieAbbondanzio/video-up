@@ -24,6 +24,8 @@ export function VideoToolbar(props: VideoToolbarProps): JSX.Element {
   };
 
   const onLeaveRoomClick = () => {
+    // Changing window location will trigger websocket to close so we don't need
+    // to worry about notifying server we left.
     window.location.replace("/");
   };
 
