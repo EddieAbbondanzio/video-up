@@ -1,12 +1,17 @@
 import React, { useState } from "react";
 import styled from "styled-components";
+import { ShareButton } from "./ShareLinkButton";
 import { VideoToolbarButton } from "./VideoToolbarButton";
 
 export interface VideoToolbarProps {
+  domain: string;
   isHost: boolean;
+  roomID?: string;
 }
 
 export function VideoToolbar(props: VideoToolbarProps): JSX.Element {
+  const { domain, isHost, roomID } = props;
+
   const [isCameraStopped, setIsCameraStopped] = useState(true);
   const [isMicMuted, setIsMicMuted] = useState(true);
 
@@ -18,6 +23,8 @@ export function VideoToolbar(props: VideoToolbarProps): JSX.Element {
     setIsMicMuted(!isMicMuted);
   };
 
+  const onLeaveRoomClick = () => {};
+
   let leaveButtonTitle = "";
   if (props.isHost) {
     leaveButtonTitle =
@@ -25,7 +32,7 @@ export function VideoToolbar(props: VideoToolbarProps): JSX.Element {
   }
 
   return (
-    <FixedOnBottom className="has-background-dark has-text-white is-flex is-align-items-center is-justify-content-space-between">
+    <FixedOnBottom className="has-background-dark has-text-white is-flex is-align-items-center is-justify-content-center">
       <div>
         <VideoToolbarButton
           icon={isCameraStopped ? "fas fa-video-slash" : "fas fa-video"}
@@ -37,11 +44,16 @@ export function VideoToolbar(props: VideoToolbarProps): JSX.Element {
           title={isMicMuted ? "Unmute mic" : "Mute mic"}
           onClick={onMicButtonClick}
         />
-      </div>
 
-      <button className="button is-danger mx-2" title={leaveButtonTitle}>
-        Leave call
-      </button>
+        <ShareButton domain={domain} roomID={roomID} isHost={isHost} />
+
+        <VideoToolbarButton
+          color="is-danger"
+          icon="fas fa-sign-out-alt"
+          title="Leave video call"
+          onClick={onLeaveRoomClick}
+        />
+      </div>
     </FixedOnBottom>
   );
 }

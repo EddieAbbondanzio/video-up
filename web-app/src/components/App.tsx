@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { useEffect, useState } from "react";
 import { NavBar } from "./NavBar";
 import { VideoRoom } from "./VideoRoom";
@@ -11,27 +11,23 @@ export interface AppProps {
 export function App(props: AppProps) {
   const { ws } = props;
 
-  const [roomID, setRoomID] = useState<string | null>(null);
-  const [isHost, setIsHost] = useState<boolean>(false);
-
+  const [showWelcome, setShowWelcome] = useState(true);
   useEffect(() => {
     let url = new URL(window.location.href);
     if (url.pathname !== "/") {
-      setRoomID(url.pathname.slice(1));
+      setShowWelcome(false);
     }
   }, [window.location.href]);
 
-  const [isInRoom, setIsInRoom] = useState(roomID != null);
-  const hostRoom = () => {
-    setIsInRoom(true);
-    setIsHost(true);
+  const onHost = () => {
+    setShowWelcome(false);
   };
 
   return (
     <>
       <NavBar />
-      {!isInRoom && <Welcome onHost={hostRoom} />}
-      {isInRoom && <VideoRoom ws={ws} isHost={isHost} roomID={roomID} />}
+      {showWelcome && <Welcome onHost={onHost} />}
+      {!showWelcome && <VideoRoom ws={ws} />}
     </>
   );
 }

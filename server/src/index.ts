@@ -97,7 +97,59 @@ async function main() {
               roomID: room.shareableID,
             });
           });
+          break;
 
+        case MessageType.JoinRoom:
+          if (sender.room != null) {
+            return;
+          }
+
+          const room = await Room.findOne({
+            where: {
+              shareableID: request.roomID,
+            },
+            relations: {
+              participants: true,
+            },
+          });
+
+          if (room == null) {
+            sendResponse(ws, {
+              type: MessageType.JoinRoom,
+              error: "Room not found.",
+            });
+            return;
+          }
+
+          if (!room.isActive) {
+            sendResponse(ws, {
+              type: MessageType.JoinRoom,
+              error: "Room was closed.",
+            });
+            return;
+          }
+
+          if (room.participants.length > ROOM_MAX_CAPACITY) {
+            sendResponse(ws, {
+              type: MessageType.JoinRoom,
+              error: "Room is full.",
+            });
+            return;
+          }
+
+          await dataSource.manager.transaction(async txManager => {
+            sender!.isActive = true;
+            sender!.room = room;
+            await txManager.save(sender);
+
+            room.participants.push(sender!);
+            await txManager.save(room);
+          });
+
+          sendResponse(ws, {
+            type: MessageType.JoinRoom,
+            participantCount: room.participants.length,
+          });
           break;
 
         // case MessageType.ParticipantJoined:

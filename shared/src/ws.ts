@@ -24,6 +24,7 @@ export interface JoinRoomRequest {
 
 export interface JoinRoomResponse {
   type: MessageType.JoinRoom;
+  participantCount?: number;
   error?: string;
 }
 
