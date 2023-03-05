@@ -1,4 +1,5 @@
 import { NavBar } from "./NavBar";
+import { Welcome } from "./Welcome";
 
 // const CALL_ID_LENGTH = 8;
 // const CALL_ID_SEARCH_PARAM = "callID";
@@ -33,6 +34,7 @@ export function App(props: AppProps) {
   return (
     <>
       <NavBar />
+      <Welcome />
     </>
   );
 }

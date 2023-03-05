@@ -3,20 +3,24 @@ import styled from "styled-components";
 
 export function NavBar() {
   return (
-    <CenteredNav className="navbar is-success">
-      <div className="navbar-item">
+    <div className="navbar is-success is-justify-content-center">
+      <Brand className="navbar-item">
         <LogoWrapper>
           <img src={logo} />
         </LogoWrapper>
-      </div>
-    </CenteredNav>
+      </Brand>
+    </div>
   );
 }
 
-const CenteredNav = styled.nav`
+const Brand = styled.div`
+  display: flex;
   justify-content: center;
+  align-items: center;
 `;
 
 const LogoWrapper = styled.div`
   display: flex;
+  height: 28px;
+  width: 133px;
 `;
