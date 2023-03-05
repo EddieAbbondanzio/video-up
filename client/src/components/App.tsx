@@ -3,6 +3,7 @@
 import { nanoid } from "nanoid";
 import { useState } from "react";
 import { VideoChat } from "./VideoChat";
+import { NavBar } from "./NavBar";
 
 const CALL_ID_LENGTH = 8;
 const CALL_ID_SEARCH_PARAM = "callID";
@@ -32,15 +33,27 @@ export function App(props) {
 
   return (
     <div className="fc fg1">
-      <h1 className="asc">VideoUp</h1>
+      <NavBar />
+
+      <span class="tag is-black">Black</span>
+      <span class="tag is-dark">Dark</span>
+      <span class="tag is-light">Light</span>
+      <span class="tag is-white">White</span>
+      <span class="tag is-primary">Primary</span>
+      <span class="tag is-link">Link</span>
+      <span class="tag is-info">Info</span>
+      <span class="tag is-success">Success</span>
+      <span class="tag is-warning">Warning</span>
+      <span class="tag is-danger">Danger</span>
+
       <div className="fc fg1">{inviteURL}</div>
-      {userClickedJoin && <VideoChat ws={ws} callID={callID} isHost={isHost} />}
-      {!userClickedJoin && (
+      {/* {userClickedJoin && <VideoChat ws={ws} callID={callID} isHost={isHost} />} */}
+      {/* {!userClickedJoin && (
         <div>
           Click to start the video chat:
           <button onClick={() => setUserClickedJoin(true)}>Join</button>
         </div>
-      )}
+      )} */}
     </div>
   );
 }
