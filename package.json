@@ -1,0 +1,9 @@
+{
+  "name": "video-up",
+  "private": true,
+  "workspaces": [
+    "web-app",
+    "shared",
+    "server"
+  ]
+}

@@ -3,43 +3,11 @@ import { dataSource } from "./db";
 import { nanoid } from "nanoid";
 import { Room } from "./entities/room";
 import { Participant } from "./entities/participant";
+import { Message, MessageType } from "../../shared/src/ws";
 
 // The server is responsible for transmitting signaling between the participants
 // of a room and is fairly hands off. It only needs to keep track of the room's
 // state and the current list of participants to forward messages to.
-
-// Keep in sync with front-end definition
-export enum MessageType {
-  CreateRoom = "create-room",
-  ParticipantJoined = "participant-joined",
-  ParticipantLeft = "participant-left",
-  RoomClosed = "room-closed",
-}
-
-export interface CreateRoomMessage {
-  type: MessageType.CreateRoom;
-  inviteURL: string;
-}
-
-export interface ParticipantJoinedMessage {
-  type: MessageType.ParticipantJoined;
-  participantID: string;
-}
-
-export interface ParticipantLeftMessage {
-  type: MessageType.ParticipantLeft;
-  participantID: string;
-}
-
-export interface RoomClosedMessage {
-  type: MessageType.RoomClosed;
-}
-
-export type Message =
-  | CreateRoomMessage
-  | ParticipantJoinedMessage
-  | ParticipantLeftMessage
-  | RoomClosedMessage;
 
 declare module "ws" {
   interface WebSocket {

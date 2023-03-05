@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  
+  // We don't include test directory to keep build size small.
+  // Src: https://stackoverflow.com/a/60223923
+  "include": ["src"],
+  "exclude": ["node_modules"]
+}

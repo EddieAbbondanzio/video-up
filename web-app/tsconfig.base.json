@@ -10,8 +10,9 @@
     "resolveJsonModule": true,
     "strict": true,
     "strictNullChecks": true,
-    "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "jsx": "react",
+    "typeRoots" : ["node_modules/@types", "src/types"]
   },
   "references": [{ "path": "../shared"}]
 }

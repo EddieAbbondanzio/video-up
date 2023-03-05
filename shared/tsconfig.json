@@ -1,6 +1,8 @@
 {
   "extends": "./tsconfig.base.json",
-  "include": ["src", "test"],
+  "include": ["src"],
   "exclude": ["node_modules"],
-  "references": [{ "path": "../shared"}]
+  "compilerOptions": {
+    "composite": true
+  }
 }
