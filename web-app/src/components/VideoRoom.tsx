@@ -6,6 +6,7 @@ import {
   WebSocketResponse,
 } from "../../../shared/src/ws";
 import { sendRequest } from "../ws";
+import { JoinModal } from "./JoinModal";
 
 export interface VideoRoomProps {
   ws: WebSocket;
@@ -17,6 +18,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
   const [domain, setDomain] = useState<string>(undefined!);
   const [roomID, setRoomID] = useState<string | undefined>(undefined);
   const [isHost, setIsHost] = useState<boolean>(false);
+  const [hasConfirmedJoin, setHasConfirmedJoin] = useState(false);
 
   // Initialize room whenever the URL changes
   useEffect(() => {
@@ -31,7 +33,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
       sendRequest(ws, {
         type: MessageType.CreateRoom,
       });
-    } else {
+    } else if (hasConfirmedJoin) {
       if (!existingRoomID) {
         throw new Error(`No roomID to join as participant.`);
       }
@@ -40,12 +42,14 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
         type: MessageType.JoinRoom,
         roomID: existingRoomID,
       });
+    } else {
+      return;
     }
 
     setRoomID(existingRoomID);
     setIsHost(existingRoomID == null);
     setDomain(url.href);
-  }, [window.location.href]);
+  }, [window.location.href, hasConfirmedJoin]);
 
   // Listen for websocket responses
   useEffect(() => {
@@ -61,6 +65,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
         case MessageType.JoinRoom:
           if (response.error) {
             alert(response.error);
+            window.location.replace("/");
           }
           break;
       }
@@ -72,7 +77,6 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
     };
   }, [ws]);
 
-  // Handle incoming participants that join
   // Need to send them our SDP, and accept theirs
 
   // Need to handle forwarding ICE candidates to each other participant
@@ -83,8 +87,9 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
 
   return (
     <div>
-      <i className="fas fa-user"></i>
-      Hi, this is the video room.
+      {!isHost && !hasConfirmedJoin && (
+        <JoinModal onJoin={() => setHasConfirmedJoin(true)} />
+      )}
       {roomID && (
         <VideoToolbar isHost={isHost} roomID={roomID} domain={domain} />
       )}

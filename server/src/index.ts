@@ -151,44 +151,6 @@ async function main() {
             participantCount: room.participants.length,
           });
           break;
-
-        // case MessageType.ParticipantJoined:
-        //   if (sender.room == null) {
-        //     return;
-        //   }
-
-        //   if (sender.room.participants.length > ROOM_MAX_CAPACITY) {
-        //     // TODO: Notify participant, along with reason why.
-        //     return;
-        //   }
-
-        //   sender.room.participants.push(sender);
-        //   forwardMessageToOthersInRoom(
-        //     wss,
-        //     sender.room,
-        //     {
-        //       type: MessageType.ParticipantJoined,
-        //       participantID: sender.id,
-        //     },
-        //     sender,
-        //   );
-        //   break;
-
-        // case MessageType.ParticipantLeft:
-        //   if (sender.room == null) {
-        //     return;
-        //   }
-
-        //   await handleParticipantLeft(wss, sender);
-        //   break;
-
-        // case MessageType.RoomClosed:
-        //   if (sender.room == null) {
-        //     return;
-        //   }
-
-        //   forwardMessageToOthersInRoom(wss, sender.room, request, sender);
-        //   break;
       }
     });
 
@@ -257,7 +219,9 @@ export async function handleParticipantLeft(
 
   let response: WebSocketResponse;
 
-  // If host leaves, close the room
+  // If host leaves, close the room. (There's no technical reason for requiring
+  // this since video / audio are sent P2P but it makes it easy to track when to
+  // invalidate rooms)
   if (participant.isHost) {
     room.isActive = false;
 
