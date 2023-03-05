@@ -36,26 +36,7 @@ async function main() {
   });
 
   wss.on("connection", async function connection(ws) {
-    // Web sockets are assigned unique IDs so we can selectively forward messages
-    // between each end of the video call.
-    ws.id = nanoid(WS_ID_LENGTH);
-
-    const existingParticipant = await Participant.findOneBy({
-      websocketID: ws.id,
-    });
-    if (existingParticipant != null) {
-      throw new Error(
-        `New websocket already had existing participant (ID: ${existingParticipant.id})`,
-      );
-    }
-
-    const participant = new Participant();
-    participant.id = nanoid();
-    participant.websocketID = ws.id;
-    participant.isActive = true;
-    participant.isHost = false;
-    participant.room = null;
-    await participant.save();
+    await initWebSocket(ws);
 
     ws.on("error", console.error);
 
@@ -154,7 +135,7 @@ async function main() {
           // Notify others in the room a new user joined.
           sendResponseToOthersInRoom(wss, sender, {
             type: MessageType.ParticipantJoined,
-            participantID: participant.id,
+            participantID: sender.id,
           });
           break;
       }
@@ -187,6 +168,29 @@ async function main() {
 
 if (process.env.NODE_ENV !== "test") {
   main();
+}
+
+export async function initWebSocket(ws: WebSocket) {
+  // Web sockets are assigned unique IDs so we can selectively forward messages
+  // between each end of the video call.
+  ws.id = nanoid(WS_ID_LENGTH);
+
+  const existingParticipant = await Participant.findOneBy({
+    websocketID: ws.id,
+  });
+  if (existingParticipant != null) {
+    throw new Error(
+      `New websocket already had existing participant (ID: ${existingParticipant.id})`,
+    );
+  }
+
+  const participant = new Participant();
+  participant.id = nanoid();
+  participant.websocketID = ws.id;
+  participant.isActive = true;
+  participant.isHost = false;
+  participant.room = null;
+  await participant.save();
 }
 
 export function sendResponseToOthersInRoom(
