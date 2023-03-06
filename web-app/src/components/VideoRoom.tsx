@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { VideoToolbar } from "./VideoToolbar";
 import {
   CreateRoomRequest,
@@ -7,6 +7,12 @@ import {
 } from "../../../shared/src/ws";
 import { sendRequest } from "../ws";
 import { JoinModal } from "./JoinModal";
+import styled from "styled-components";
+import { createNewRtcPeerConnection, startLocalVideoAndAudio } from "../media";
+import {
+  VideoParticipant,
+  VideoParticipantBlock,
+} from "./VideoParticipantBlock";
 
 export interface VideoRoomProps {
   ws: WebSocket;
@@ -19,6 +25,12 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
   const [roomID, setRoomID] = useState<string | undefined>(undefined);
   const [isHost, setIsHost] = useState<boolean>(false);
   const [hasConfirmedJoin, setHasConfirmedJoin] = useState(false);
+  const [roomParticipants, setRoomParticipants] = useState<VideoParticipant[]>(
+    [],
+  );
+
+  const localVideo = useRef<MediaStreamTrack | undefined>();
+  const localAudio = useRef<MediaStreamTrack | undefined>();
 
   // Initialize room whenever the URL changes
   useEffect(() => {
@@ -46,10 +58,35 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
       return;
     }
 
+    let userIsHost = existingRoomID == null;
+
     setRoomID(existingRoomID);
-    setIsHost(existingRoomID == null);
+    setIsHost(userIsHost);
+    setHasConfirmedJoin(userIsHost);
     setDomain(url.href);
   }, [window.location.href, hasConfirmedJoin]);
+
+  // Start camera / mic once user confirms the join
+  useEffect(() => {
+    if (!hasConfirmedJoin) {
+      return;
+    }
+
+    (async () => {
+      const { video, audio } = await startLocalVideoAndAudio();
+
+      localVideo.current = video;
+      localAudio.current = audio;
+
+      // Add self to participants
+      setRoomParticipants([
+        {
+          isLocal: true,
+          id: "self",
+        },
+      ]);
+    })();
+  }, [hasConfirmedJoin]);
 
   // Listen for websocket responses
   useEffect(() => {
@@ -68,6 +105,22 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
             window.location.replace("/");
           }
           break;
+
+        case MessageType.ParticipantJoined:
+          setRoomParticipants(existing => [
+            ...existing,
+            {
+              id: response.participantID,
+              isLocal: false,
+            },
+          ]);
+          break;
+
+        case MessageType.ParticipantLeft:
+          setRoomParticipants(existing =>
+            existing.filter(p => p.id !== response.participantID),
+          );
+          break;
       }
     };
     ws.addEventListener("message", onMessage);
@@ -77,22 +130,33 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
     };
   }, [ws]);
 
-  // Need to send them our SDP, and accept theirs
-
-  // Need to handle forwarding ICE candidates to each other participant
-
-  // Need to handle participants leaving.
-
-  // Use video participant! <VideoParticipant />
+  let renderedParticipants: JSX.Element[] = [];
+  if (hasConfirmedJoin) {
+    renderedParticipants = roomParticipants.map(p => (
+      <VideoParticipantBlock
+        key={p.id}
+        ws={ws}
+        participant={p}
+        localVideo={localVideo.current}
+        localAudio={localAudio.current}
+      />
+    ));
+  }
 
   return (
-    <div>
+    <VideoBackground>
       {!isHost && !hasConfirmedJoin && (
         <JoinModal onJoin={() => setHasConfirmedJoin(true)} />
       )}
+      {renderedParticipants}
       {roomID && (
         <VideoToolbar isHost={isHost} roomID={roomID} domain={domain} />
       )}
-    </div>
+    </VideoBackground>
   );
 }
+
+const VideoBackground = styled.div`
+  flex-grow: 1;
+  background-color: #262626;
+`;

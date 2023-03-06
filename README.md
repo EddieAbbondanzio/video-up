@@ -1,8 +1,6 @@
 # Video Up
 
-Video Up is a website that lets users share a link with someone else that will let them join a one on one video chat with the other user.
-
-It's built using WebRTC and sends video / audio data via P2P (peer to peer). There is a signaling server that helps the caller and callee initialize connections with each other, and the front end communicates with it via web sockets.
+Video Up let's anyone host live video calls amongst themselves and up to 3 friends. Video calls are joined via magic links, and video data is transmitted via P2P and supports most modern browsers.
 
 ## Why I Built It
 
@@ -19,12 +17,24 @@ In terms of approach there's some refactoring that should be done to change how 
 
 ## Dev
 
-The project is divided into two parts:
+The project is divided into three parts:
 
-- client (front end)
-- server (signaling server)
+- `web-app`: React based front end
+- `server`: Signaling server that let's participants communicate with each other while initializing RTC connections.
+- `shared`: Code shared between the server and front end.
 
-Both can be initialized using `yarn` and then `yarn start` to begin running them.
+The workspace can be initialized using `yarn` and after that both the front end / server can be started by running `yarn start`.
+
+```
+# In root directory:
+yarn
+
+cd web-app
+yarn start
+
+cd server
+yarn start
+```
 
 The client will be live on `http://localhost:1234` and the server will be at `http:localhost:8080`.
 
@@ -32,3 +42,4 @@ The client will be live on `http://localhost:1234` and the server will be at `ht
 
 - [MDN signaling and video calling tutorial](https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Signaling_and_video_calling)
 - [WebRTC for the curious](https://webrtcforthecurious.com/)
+- [Manage Dynamic Multi-Peer Connections in WebRTC](https://medium.com/swlh/manage-dynamic-multi-peer-connections-in-webrtc-3ff4e10f75b7)

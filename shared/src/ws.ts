@@ -2,6 +2,8 @@ export enum MessageType {
   CreateRoom = "create-room",
   JoinRoom = "join-room",
   ParticipantJoined = "participant-joined",
+  VideoOffer = "video-offer",
+  VideoAnswer = "video-answer",
   ParticipantLeft = "participant-left",
   RoomClosed = "room-closed",
 }
@@ -33,6 +35,30 @@ export interface ParticipantJoinedResponse {
   participantID: string;
 }
 
+export interface VideoOfferRequest {
+  type: MessageType.VideoOffer;
+  destinationID: string;
+  sdp: RTCSessionDescription;
+}
+
+export interface VideoOfferResponse {
+  type: MessageType.VideoOffer;
+  senderID: string;
+  sdp: RTCSessionDescription;
+}
+
+export interface VideoAnswerRequest {
+  type: MessageType.VideoAnswer;
+  destinationID: string;
+  sdp: RTCSessionDescription;
+}
+
+export interface VideoAnswerResponse {
+  type: MessageType.VideoAnswer;
+  senderID: string;
+  sdp: RTCSessionDescription;
+}
+
 export interface ParticipantLeftResponse {
   type: MessageType.ParticipantLeft;
   participantID: string;
@@ -50,11 +76,15 @@ export interface RoomClosedResponse {
 export type WebSocketRequest =
   | CreateRoomRequest
   | JoinRoomRequest
+  | VideoOfferRequest
+  | VideoAnswerRequest
   | RoomClosedRequest;
 
 export type WebSocketResponse =
   | CreateRoomResponse
   | JoinRoomResponse
   | ParticipantJoinedResponse
+  | VideoOfferResponse
+  | VideoAnswerResponse
   | ParticipantLeftResponse
   | RoomClosedResponse;

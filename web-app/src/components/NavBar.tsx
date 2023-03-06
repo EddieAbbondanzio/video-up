@@ -3,10 +3,14 @@ import logo from "../../static/images/logo-white.png";
 import styled from "styled-components";
 
 export function NavBar() {
+  const goHome = () => {
+    window.location.replace("/");
+  };
+
   return (
     <div className="navbar is-success is-justify-content-center">
       <Brand className="navbar-item">
-        <LogoWrapper>
+        <LogoWrapper onClick={goHome}>
           <img src={logo} />
         </LogoWrapper>
       </Brand>
@@ -20,7 +24,7 @@ const Brand = styled.div`
   align-items: center;
 `;
 
-const LogoWrapper = styled.div`
+const LogoWrapper = styled.a`
   display: flex;
   height: 28px;
   width: 133px;
