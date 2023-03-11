@@ -71,7 +71,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
 
   // Start camera / mic once user confirms the join
   useEffect(() => {
-    if (!hasConfirmedJoin || !roomID) {
+    if (!hasConfirmedJoin || !roomID || !participantID) {
       return;
     }
 
@@ -109,6 +109,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
             alert(response.error);
             window.location.replace("/");
           }
+          console.log("Joined room! Set participant ID");
           setParticipantID(response.participantID);
           break;
 
