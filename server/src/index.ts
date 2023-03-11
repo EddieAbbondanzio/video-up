@@ -76,6 +76,7 @@ async function main() {
             sendResponse(ws, {
               type: MessageType.CreateRoom,
               roomID: room.shareableID,
+              participantID: sender!.id,
             });
           });
           break;
@@ -129,6 +130,7 @@ async function main() {
 
           sendResponse(ws, {
             type: MessageType.JoinRoom,
+            participantID: sender.id,
             participantCount: room.participants.length,
           });
 

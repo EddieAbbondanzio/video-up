@@ -4,6 +4,7 @@ export enum MessageType {
   ParticipantJoined = "participant-joined",
   VideoOffer = "video-offer",
   VideoAnswer = "video-answer",
+  IceCandidate = "ice-candidate",
   ParticipantLeft = "participant-left",
   RoomClosed = "room-closed",
 }
@@ -17,6 +18,7 @@ export interface CreateRoomRequest {
 export interface CreateRoomResponse {
   type: MessageType.CreateRoom;
   roomID: string;
+  participantID: string;
 }
 
 export interface JoinRoomRequest {
@@ -26,6 +28,7 @@ export interface JoinRoomRequest {
 
 export interface JoinRoomResponse {
   type: MessageType.JoinRoom;
+  participantID?: string;
   participantCount?: number;
   error?: string;
 }

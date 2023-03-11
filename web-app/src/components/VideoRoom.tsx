@@ -22,7 +22,8 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
   const { ws } = props;
 
   const [domain, setDomain] = useState<string>(undefined!);
-  const [roomID, setRoomID] = useState<string | undefined>(undefined);
+  const [roomID, setRoomID] = useState<string | undefined>();
+  const [participantID, setParticipantID] = useState<string | undefined>();
   const [isHost, setIsHost] = useState<boolean>(false);
   const [hasConfirmedJoin, setHasConfirmedJoin] = useState(false);
   const [roomParticipants, setRoomParticipants] = useState<VideoParticipant[]>(
@@ -78,11 +79,15 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
       localVideo.current = video;
       localAudio.current = audio;
 
+      if (participantID == null) {
+        throw new Error("Local user wasn't given a participant ID.");
+      }
+
       // Add self to participants
       setRoomParticipants([
         {
           isLocal: true,
-          id: "self",
+          id: participantID,
         },
       ]);
     })();
@@ -97,6 +102,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
       switch (response.type) {
         case MessageType.CreateRoom:
           setRoomID(response.roomID);
+          setParticipantID(response.participantID);
           break;
 
         case MessageType.JoinRoom:
@@ -104,6 +110,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
             alert(response.error);
             window.location.replace("/");
           }
+          setParticipantID(response.participantID);
           break;
 
         case MessageType.ParticipantJoined:

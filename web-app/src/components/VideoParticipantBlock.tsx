@@ -50,10 +50,27 @@ export function VideoParticipantBlock(
       });
     };
 
+    const onTrack = ({ track }: RTCTrackEvent) => {
+      console.log("Remote track received: ", track!.kind);
+
+      switch (track!.kind) {
+        case "video":
+          // setRemoteVideoTrack(track);
+          break;
+        case "audio":
+          // setRemoteAudioTrack(track);
+          break;
+        default:
+          throw new Error(`Unsupported video track kind: ${track.kind}`);
+      }
+    };
+
+    newConnection.addEventListener("track", onTrack);
     newConnection.addEventListener("negotiationneeded", onNegotiationNeeded);
     peerConnection.current = newConnection;
 
     return () => {
+      newConnection.removeEventListener("track", onTrack);
       newConnection.removeEventListener(
         "negotiationneeded",
         onNegotiationNeeded,
@@ -71,14 +88,14 @@ export function VideoParticipantBlock(
       const response: WebSocketResponse = JSON.parse(ev.data);
       console.log("GOT RESPONSE: ", response);
 
-      switch (
-        response.type
-        // case MessageType.VideoOffer:
-        //   (async () => {
-        //     const { senderID, sdp } = response;
-        //   })();
-        //   break;
-      ) {
+      switch (response.type) {
+        case MessageType.VideoOffer:
+          break;
+
+        case MessageType.VideoAnswer:
+          break;
+
+        // TODO: Handle ICE candidates!
       }
     };
     ws.addEventListener("message", onMessage);
