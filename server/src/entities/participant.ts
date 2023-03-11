@@ -20,4 +20,7 @@ export class Participant extends BaseEntity {
   // because of the new web socket connection.
   @ManyToOne(() => Room, room => room.participants)
   room!: Room | null;
+
+  @Column({ type: "integer", nullable: true })
+  joinedAt!: Date | null;
 }

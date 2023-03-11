@@ -1,3 +1,5 @@
+import { PeerType } from "./media";
+
 export enum MessageType {
   CreateRoom = "create-room",
   JoinRoom = "join-room",
@@ -28,13 +30,13 @@ export interface JoinRoomRequest {
 export interface JoinRoomResponse {
   type: MessageType.JoinRoom;
   participantID?: string;
-  participantCount?: number;
   error?: string;
 }
 
 export interface ParticipantJoinedResponse {
   type: MessageType.ParticipantJoined;
   participantID: string;
+  peerType: PeerType;
 }
 
 export interface SDPDescriptionRequest {

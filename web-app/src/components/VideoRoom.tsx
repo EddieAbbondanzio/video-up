@@ -8,11 +8,12 @@ import {
 import { sendRequest } from "../ws";
 import { JoinModal } from "./JoinModal";
 import styled from "styled-components";
-import { createNewRtcPeerConnection, startLocalVideoAndAudio } from "../media";
 import {
-  VideoParticipant,
-  VideoParticipantBlock,
-} from "./VideoParticipantBlock";
+  createNewRtcPeerConnection,
+  Peer,
+  startLocalVideoAndAudio,
+} from "../media";
+import { Video } from "./Video";
 
 export interface VideoRoomProps {
   ws: WebSocket;
@@ -26,10 +27,9 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
   const [participantID, setParticipantID] = useState<string | undefined>();
   const [isHost, setIsHost] = useState<boolean>(false);
   const [hasConfirmedJoin, setHasConfirmedJoin] = useState(false);
-  const [roomParticipants, setRoomParticipants] = useState<VideoParticipant[]>(
-    [],
-  );
 
+  const peers = useRef<Peer[]>([]);
+  const localStream = useRef<MediaStream | undefined>();
   const localVideo = useRef<MediaStreamTrack | undefined>();
   const localAudio = useRef<MediaStreamTrack | undefined>();
 
@@ -63,35 +63,30 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
 
     setRoomID(existingRoomID);
     setIsHost(userIsHost);
-    setHasConfirmedJoin(userIsHost);
+    if (userIsHost) {
+      setHasConfirmedJoin(true);
+    }
     setDomain(url.href);
   }, [window.location.href, hasConfirmedJoin]);
 
   // Start camera / mic once user confirms the join
   useEffect(() => {
-    if (!hasConfirmedJoin) {
+    if (!hasConfirmedJoin || !roomID) {
       return;
     }
 
     (async () => {
-      const { video, audio } = await startLocalVideoAndAudio();
+      const { video, audio, stream } = await startLocalVideoAndAudio();
 
       localVideo.current = video;
       localAudio.current = audio;
+      localStream.current = stream;
 
       if (participantID == null) {
         throw new Error("Local user wasn't given a participant ID.");
       }
-
-      // Add self to participants
-      setRoomParticipants([
-        {
-          isLocal: true,
-          id: participantID,
-        },
-      ]);
     })();
-  }, [hasConfirmedJoin]);
+  }, [roomID, hasConfirmedJoin, participantID]);
 
   // Listen for websocket responses
   useEffect(() => {
@@ -103,6 +98,10 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
         case MessageType.CreateRoom:
           setRoomID(response.roomID);
           setParticipantID(response.participantID);
+          console.log(
+            "JOIN ROOM SUCCESS! got participant ID: ",
+            response.participantID,
+          );
           break;
 
         case MessageType.JoinRoom:
@@ -114,19 +113,26 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
           break;
 
         case MessageType.ParticipantJoined:
-          setRoomParticipants(existing => [
-            ...existing,
-            {
-              id: response.participantID,
-              isLocal: false,
-            },
-          ]);
+          peers.current.push(
+            new Peer(ws, response.participantID, response.peerType),
+          );
           break;
 
         case MessageType.ParticipantLeft:
-          setRoomParticipants(existing =>
-            existing.filter(p => p.id !== response.participantID),
+          const peerThatLeft = peers.current.find(
+            p => p.remoteParticipantID === response.participantID,
           );
+          if (peerThatLeft == null) {
+            throw new Error(
+              `No peer found for remote participant (ID: ${response.participantID})`,
+            );
+          }
+
+          peers.current = peers.current.filter(
+            p => p.remoteParticipantID !== response.participantID,
+          );
+
+          peerThatLeft.destroy();
           break;
       }
     };
@@ -137,25 +143,41 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
     };
   }, [ws]);
 
-  let renderedParticipants: JSX.Element[] = [];
+  let videos: JSX.Element[] = [];
+
   if (hasConfirmedJoin) {
-    renderedParticipants = roomParticipants.map(p => (
-      <VideoParticipantBlock
-        key={p.id}
-        ws={ws}
-        participant={p}
-        localVideo={localVideo.current}
-        localAudio={localAudio.current}
+    videos.push(
+      <Video
+        key={participantID}
+        video={localVideo.current}
+        audio={localAudio.current}
+        stream={localStream.current}
+      />,
+    );
+
+    videos = peers.current.map(p => (
+      <Video
+        key={p.remoteParticipantID}
+        video={p.remoteMedia?.video}
+        audio={p.remoteMedia?.audio}
+        stream={p.remoteMedia?.stream}
       />
     ));
   }
 
+  console.log("RENDER ", { hasConfirmedJoin });
+
   return (
     <VideoBackground>
       {!isHost && !hasConfirmedJoin && (
-        <JoinModal onJoin={() => setHasConfirmedJoin(true)} />
+        <JoinModal
+          onJoin={() => {
+            console.log("JOIN WAS CLICKED!");
+            setHasConfirmedJoin(true);
+          }}
+        />
       )}
-      {renderedParticipants}
+      {videos}
       {roomID && (
         <VideoToolbar isHost={isHost} roomID={roomID} domain={domain} />
       )}

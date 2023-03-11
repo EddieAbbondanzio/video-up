@@ -1,3 +1,4 @@
+import { PeerType } from "../../shared/src/media";
 import { MessageType, WebSocketResponse } from "../../shared/src/ws";
 import { sendRequest } from "./ws";
 
@@ -10,14 +11,10 @@ export const STUN_SERVERS = [
   "stun4.l.google.com:19302",
 ];
 
-// https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Perfect_negotiation
-export enum PeerType {
-  // Polite peer can send out offers but if it receives an offer it'll abort the
-  // offer it created and accept the remote one.
-  Polite = 0,
-  // Impolite peer can receive offers, but if it already has sent one it'll
-  // ignore any incoming offers.
-  Impolite = 1,
+export interface MediaState {
+  video: MediaStreamTrack;
+  audio: MediaStreamTrack;
+  stream: MediaStream;
 }
 
 export class Peer {
@@ -25,9 +22,8 @@ export class Peer {
   makingOffer: boolean = false;
   ignoreOffer: boolean = false;
 
-  // TODO: Group by track kind?
-  localTracks: { track: MediaStreamTrack; stream: MediaStream }[] = [];
-  remoteTracks: { track: MediaStreamTrack; streams: MediaStream[] }[] = [];
+  localMedia?: MediaState;
+  remoteMedia?: MediaState;
 
   constructor(
     public ws: WebSocket,
@@ -71,19 +67,24 @@ export class Peer {
     this.connection.addTrack(video, stream);
     this.connection.addTrack(audio, stream);
 
-    this.localTracks.push({ track: video, stream });
-    this.localTracks.push({ track: audio, stream });
+    this.localMedia = {
+      video,
+      audio,
+      stream,
+    };
   }
 
   private onRemoteTrack({ track, streams }: RTCTrackEvent): void {
-    this.remoteTracks.push({ track, streams: streams as MediaStream[] });
+    console.log("TODO: Hook up remote media!");
   }
 
   private async onNegotiationNeeded(): Promise<void> {
+    console.log("onNegotiationNeeded");
     try {
       this.makingOffer = true;
       await this.connection.setLocalDescription();
 
+      console.log("Made offer");
       await sendRequest(this.ws, {
         type: MessageType.SDPDescription,
         destinationID: this.remoteParticipantID,
@@ -102,6 +103,7 @@ export class Peer {
   private async onIceCandidateCreated(
     ev: RTCPeerConnectionIceEvent,
   ): Promise<void> {
+    console.log("onIceCandidateCreated");
     await sendRequest(this.ws, {
       type: MessageType.IceCandidate,
       destinationID: this.remoteParticipantID,
@@ -140,6 +142,10 @@ export class Peer {
       (this.makingOffer || this.connection.signalingState !== "stable");
 
     this.ignoreOffer = this.peerType === PeerType.Impolite && collisionDetected;
+    console.log("onDescriptionReceived", {
+      collisionDetected,
+      ignoreOffer: this.ignoreOffer,
+    });
     if (this.ignoreOffer) {
       return;
     }
@@ -151,6 +157,7 @@ export class Peer {
     if (sdp.type === "offer") {
       await this.connection.setLocalDescription();
 
+      console.log("Send response!");
       await sendRequest(this.ws, {
         type: MessageType.SDPDescription,
         destinationID: this.remoteParticipantID,
@@ -164,6 +171,7 @@ export class Peer {
     candidate: RTCIceCandidateInit,
   ): Promise<void> {
     try {
+      console.log("onIceCandidateReceived");
       await this.connection.addIceCandidate(candidate);
     } catch (err) {
       if (!this.ignoreOffer) {
@@ -178,7 +186,8 @@ export class Peer {
 
 export function createNewRtcPeerConnection(): RTCPeerConnection {
   return new RTCPeerConnection({
-    iceServers: STUN_SERVERS.map(s => ({ urls: s })),
+    //@ts-ignore
+    iceservers: STUN_SERVERS.map(s => ({ urls: s })),
   });
 }
 

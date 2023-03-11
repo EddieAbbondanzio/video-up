@@ -9,6 +9,7 @@ import {
   WebSocketResponse,
 } from "../../shared/src/ws";
 import { DataSource } from "typeorm";
+import { PeerType } from "../../shared/src/media";
 
 // The server is responsible for transmitting signaling between the participants
 // of a room and is fairly hands off. It only needs to keep track of the room's
@@ -70,6 +71,7 @@ async function main() {
 
             sender!.isHost = true;
             sender!.room = room;
+            sender!.joinedAt = new Date();
 
             await txManager.save([sender, room]);
 
@@ -122,6 +124,7 @@ async function main() {
           await dataSource.manager.transaction(async txManager => {
             sender!.isActive = true;
             sender!.room = room;
+            sender!.joinedAt = new Date();
             await txManager.save(sender);
 
             room.participants.push(sender!);
@@ -131,14 +134,34 @@ async function main() {
           sendResponse(ws, {
             type: MessageType.JoinRoom,
             participantID: sender.id,
-            participantCount: room.participants.length,
           });
 
-          // Notify others in the room a new user joined.
-          sendResponseToOthersInRoom(wss, sender, {
-            type: MessageType.ParticipantJoined,
-            participantID: sender.id,
-          });
+          // Notify participants of the new joinee
+          for (const existing of room.participants) {
+            if (existing.id === sender.id) {
+              continue;
+            }
+
+            // Notify the new participant
+            sendResponse(ws, {
+              type: MessageType.ParticipantJoined,
+              participantID: existing.id,
+              peerType: PeerType.Impolite,
+            });
+
+            // Notify the existing participant of the new user
+            const existingParticipantWS = getWebSocketOfParticipant(
+              wss,
+              existing,
+            );
+
+            sendResponse(existingParticipantWS, {
+              type: MessageType.ParticipantJoined,
+              participantID: existing.id,
+              peerType: PeerType.Polite,
+            });
+          }
+
           break;
 
         case MessageType.SDPDescription: {
@@ -149,18 +172,12 @@ async function main() {
             return;
           }
 
-          const webSocketClients = Array.from(wss.clients.values());
-          const targetWS = webSocketClients.find(
-            ws => ws.id === target!.websocketID,
-          );
-
-          if (targetWS) {
-            sendResponse(targetWS, {
-              type: MessageType.SDPDescription,
-              senderID: sender.id,
-              sdp: request.sdp,
-            });
-          }
+          const targetWS = getWebSocketOfParticipant(wss, target);
+          sendResponse(targetWS, {
+            type: MessageType.SDPDescription,
+            senderID: sender.id,
+            sdp: request.sdp,
+          });
           break;
         }
 
@@ -172,18 +189,12 @@ async function main() {
             return;
           }
 
-          const webSocketClients = Array.from(wss.clients.values());
-          const targetWS = webSocketClients.find(
-            ws => ws.id === target!.websocketID,
-          );
-
-          if (targetWS) {
-            sendResponse(targetWS, {
-              type: MessageType.IceCandidate,
-              senderID: sender.id,
-              candidate: request.candidate,
-            });
-          }
+          const targetWS = getWebSocketOfParticipant(wss, target);
+          sendResponse(targetWS, {
+            type: MessageType.IceCandidate,
+            senderID: sender.id,
+            candidate: request.candidate,
+          });
           break;
         }
       }
@@ -241,29 +252,18 @@ export async function initWebSocket(ws: WebSocket) {
   await participant.save();
 }
 
-export function sendResponseToOthersInRoom(
+export function getWebSocketOfParticipant(
   wss: WebSocketServer,
-  sender: Participant,
-  response: WebSocketResponse,
-) {
+  participant: Participant,
+): WebSocket {
   const webSocketClients = Array.from(wss.clients.values());
+  const ws = webSocketClients.find(ws => ws.id === participant.websocketID);
 
-  const { room } = sender;
-  if (room == null) {
-    return;
+  if (ws == null) {
+    throw new Error(`No websocket found for participant ID: ${participant.id}`);
   }
 
-  const otherParticipants = room.participants.filter(p => p.id !== sender.id);
-  for (const participant of otherParticipants) {
-    const ws = webSocketClients.find(ws => ws.id === participant.websocketID);
-    if (ws == null) {
-      throw new Error(
-        `No websocket found for participant (ID: ${participant.id})`,
-      );
-    }
-
-    sendResponse(ws, response);
-  }
+  return ws;
 }
 
 export function sendResponseToRoom(
