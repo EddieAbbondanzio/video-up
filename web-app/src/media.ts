@@ -59,19 +59,14 @@ export class Peer {
     this.ws.removeEventListener("message", this.onSignal);
   }
 
-  addLocalTracks(
-    video: MediaStreamTrack,
-    audio: MediaStreamTrack,
-    stream: MediaStream,
-  ): void {
+  addLocalMedia(media: MediaState): void {
+    const { video, audio, stream } = media;
+    console.log("Added local media!", media);
+
     this.connection.addTrack(video, stream);
     this.connection.addTrack(audio, stream);
 
-    this.localMedia = {
-      video,
-      audio,
-      stream,
-    };
+    this.localMedia = media;
   }
 
   private onRemoteTrack({ track, streams }: RTCTrackEvent): void {
@@ -191,7 +186,7 @@ export function createNewRtcPeerConnection(): RTCPeerConnection {
   });
 }
 
-export async function startLocalVideoAndAudio() {
+export async function startLocalVideoAndAudio(): Promise<MediaState> {
   const stream = await navigator.mediaDevices.getUserMedia({
     video: { facingMode: "user" },
     audio: true,

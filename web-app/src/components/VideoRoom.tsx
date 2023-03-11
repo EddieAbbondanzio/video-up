@@ -10,6 +10,7 @@ import { JoinModal } from "./JoinModal";
 import styled from "styled-components";
 import {
   createNewRtcPeerConnection,
+  MediaState,
   Peer,
   startLocalVideoAndAudio,
 } from "../media";
@@ -29,9 +30,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
   const [hasConfirmedJoin, setHasConfirmedJoin] = useState(false);
 
   const peers = useRef<Peer[]>([]);
-  const localStream = useRef<MediaStream | undefined>();
-  const localVideo = useRef<MediaStreamTrack | undefined>();
-  const localAudio = useRef<MediaStreamTrack | undefined>();
+  const localMedia = useRef<MediaState | undefined>();
 
   // Initialize room whenever the URL changes
   useEffect(() => {
@@ -76,14 +75,15 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
     }
 
     (async () => {
-      const { video, audio, stream } = await startLocalVideoAndAudio();
-
-      localVideo.current = video;
-      localAudio.current = audio;
-      localStream.current = stream;
+      const media = await startLocalVideoAndAudio();
+      localMedia.current = media;
 
       if (participantID == null) {
         throw new Error("Local user wasn't given a participant ID.");
+      }
+
+      for (const peer of peers.current) {
+        peer.addLocalMedia(media);
       }
     })();
   }, [roomID, hasConfirmedJoin, participantID]);
@@ -114,9 +114,17 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
           break;
 
         case MessageType.ParticipantJoined:
-          peers.current.push(
-            new Peer(ws, response.participantID, response.peerType),
+          const newPeer = new Peer(
+            ws,
+            response.participantID,
+            response.peerType,
           );
+
+          if (localMedia.current) {
+            newPeer.addLocalMedia(localMedia.current);
+          }
+
+          peers.current.push(newPeer);
           break;
 
         case MessageType.ParticipantLeft:
@@ -147,22 +155,10 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
   let videos: JSX.Element[] = [];
 
   if (hasConfirmedJoin) {
-    videos.push(
-      <Video
-        key={participantID}
-        video={localVideo.current}
-        audio={localAudio.current}
-        stream={localStream.current}
-      />,
-    );
+    videos.push(<Video key={participantID} media={localMedia.current} />);
 
     videos = peers.current.map(p => (
-      <Video
-        key={p.remoteParticipantID}
-        video={p.remoteMedia?.video}
-        audio={p.remoteMedia?.audio}
-        stream={p.remoteMedia?.stream}
-      />
+      <Video key={p.remoteParticipantID} media={p.remoteMedia} />
     ));
   }
 

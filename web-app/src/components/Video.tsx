@@ -1,11 +1,8 @@
 import React from "react";
-import { Peer } from "../media";
+import { MediaState, Peer } from "../media";
 
 export interface VideoProps {
-  video?: MediaStreamTrack;
-  audio?: MediaStreamTrack;
-  // TODO: Do we need this?
-  stream?: MediaStream;
+  media?: MediaState;
 }
 
 export function Video(props: VideoProps): JSX.Element {
