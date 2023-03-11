@@ -1,11 +1,12 @@
 import React, { useEffect, useReducer, useRef } from "react";
 import { MessageType, WebSocketResponse } from "../../../shared/src/ws";
-import { createNewRtcPeerConnection } from "../media";
+import { createNewRtcPeerConnection, NegotiationMode } from "../media";
 import { sendRequest } from "../ws";
 
 export interface VideoParticipant {
   id: string;
   isLocal: boolean;
+  negotiationMode: NegotiationMode;
 }
 
 export interface VideoParticipantBlockProps {

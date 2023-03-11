@@ -2,9 +2,8 @@ export enum MessageType {
   CreateRoom = "create-room",
   JoinRoom = "join-room",
   ParticipantJoined = "participant-joined",
-  VideoOffer = "video-offer",
-  VideoAnswer = "video-answer",
   IceCandidate = "ice-candidate",
+  SDPDescription = "sdp-description",
   ParticipantLeft = "participant-left",
   RoomClosed = "room-closed",
 }
@@ -38,28 +37,28 @@ export interface ParticipantJoinedResponse {
   participantID: string;
 }
 
-export interface VideoOfferRequest {
-  type: MessageType.VideoOffer;
+export interface SDPDescriptionRequest {
+  type: MessageType.SDPDescription;
   destinationID: string;
   sdp: RTCSessionDescription;
 }
 
-export interface VideoOfferResponse {
-  type: MessageType.VideoOffer;
+export interface SDPDescriptionResponse {
+  type: MessageType.SDPDescription;
   senderID: string;
   sdp: RTCSessionDescription;
 }
 
-export interface VideoAnswerRequest {
-  type: MessageType.VideoAnswer;
+export interface IceCandidateRequest {
+  type: MessageType.IceCandidate;
   destinationID: string;
-  sdp: RTCSessionDescription;
+  candidate: RTCIceCandidateInit;
 }
 
-export interface VideoAnswerResponse {
-  type: MessageType.VideoAnswer;
+export interface IceCandidateResponse {
+  type: MessageType.IceCandidate;
   senderID: string;
-  sdp: RTCSessionDescription;
+  candidate: RTCIceCandidateInit;
 }
 
 export interface ParticipantLeftResponse {
@@ -79,15 +78,15 @@ export interface RoomClosedResponse {
 export type WebSocketRequest =
   | CreateRoomRequest
   | JoinRoomRequest
-  | VideoOfferRequest
-  | VideoAnswerRequest
+  | SDPDescriptionRequest
+  | IceCandidateRequest
   | RoomClosedRequest;
 
 export type WebSocketResponse =
   | CreateRoomResponse
   | JoinRoomResponse
   | ParticipantJoinedResponse
-  | VideoOfferResponse
-  | VideoAnswerResponse
+  | SDPDescriptionResponse
+  | IceCandidateResponse
   | ParticipantLeftResponse
   | RoomClosedResponse;

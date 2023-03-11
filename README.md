@@ -41,5 +41,6 @@ The client will be live on `http://localhost:1234` and the server will be at `ht
 ## Resources
 
 - [MDN signaling and video calling tutorial](https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Signaling_and_video_calling)
+- [MDN The perfect negotiation](https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Perfect_negotiation)
 - [WebRTC for the curious](https://webrtcforthecurious.com/)
 - [Manage Dynamic Multi-Peer Connections in WebRTC](https://medium.com/swlh/manage-dynamic-multi-peer-connections-in-webrtc-3ff4e10f75b7)
