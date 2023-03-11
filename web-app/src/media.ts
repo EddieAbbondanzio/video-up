@@ -30,7 +30,13 @@ export class Peer {
     public remoteParticipantID: string,
     public peerType: PeerType,
   ) {
+    // RTCPeerConnection replaces this with itself in event callbacks
+    this.onNegotiationNeeded = this.onNegotiationNeeded.bind(this);
+    this.onIceCandidateCreated = this.onIceCandidateCreated.bind(this);
+    this.onRemoteTrack = this.onRemoteTrack.bind(this);
+
     this.connection = createNewRtcPeerConnection();
+    console.log("Peer connection is: ", this.connection);
 
     this.connection.addEventListener("track", this.onRemoteTrack);
     this.connection.addEventListener(
@@ -42,10 +48,20 @@ export class Peer {
       this.onIceCandidateCreated,
     );
 
+    // TODO: REMOVE!
+    this.connection.addEventListener("signalingstatechange", ev => {
+      console.log("SIGNAL STATE CHANGE!", ev.target);
+    });
+
+    this.connection.addEventListener("connectionstatechange", ev => {
+      console.log("CONNECTION STATE CHANGE: ", ev.target);
+    });
+
     ws.addEventListener("message", this.onSignal);
   }
 
   destroy(): void {
+    console.log("DESTROY() was called");
     this.connection.removeEventListener("track", this.onRemoteTrack);
     this.connection.removeEventListener(
       "negotiationneeded",
@@ -71,10 +87,16 @@ export class Peer {
 
   private onRemoteTrack({ track, streams }: RTCTrackEvent): void {
     console.log("TODO: Hook up remote media!");
+
+    track.onunmute = () => {
+      console.log("==================================");
+      console.log("REMOTE TRACK STARTED SENDING DATA!");
+      console.log("==================================");
+    };
   }
 
   private async onNegotiationNeeded(): Promise<void> {
-    console.log("onNegotiationNeeded");
+    console.log("onNegotiationNeeded", this);
     try {
       this.makingOffer = true;
       await this.connection.setLocalDescription();
