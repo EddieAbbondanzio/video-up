@@ -20,7 +20,7 @@ export enum PeerType {
   Impolite = 1,
 }
 
-class Peer {
+export class Peer {
   connection: RTCPeerConnection;
   makingOffer: boolean = false;
   ignoreOffer: boolean = false;

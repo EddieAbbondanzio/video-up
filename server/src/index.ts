@@ -140,6 +140,52 @@ async function main() {
             participantID: sender.id,
           });
           break;
+
+        case MessageType.SDPDescription: {
+          let target = await Participant.findOne({
+            where: { id: request.destinationID },
+          });
+          if (target == null) {
+            return;
+          }
+
+          const webSocketClients = Array.from(wss.clients.values());
+          const targetWS = webSocketClients.find(
+            ws => ws.id === target!.websocketID,
+          );
+
+          if (targetWS) {
+            sendResponse(targetWS, {
+              type: MessageType.SDPDescription,
+              senderID: sender.id,
+              sdp: request.sdp,
+            });
+          }
+          break;
+        }
+
+        case MessageType.IceCandidate: {
+          let target = await Participant.findOne({
+            where: { id: request.destinationID },
+          });
+          if (target == null) {
+            return;
+          }
+
+          const webSocketClients = Array.from(wss.clients.values());
+          const targetWS = webSocketClients.find(
+            ws => ws.id === target!.websocketID,
+          );
+
+          if (targetWS) {
+            sendResponse(targetWS, {
+              type: MessageType.IceCandidate,
+              senderID: sender.id,
+              candidate: request.candidate,
+            });
+          }
+          break;
+        }
       }
     });
 
