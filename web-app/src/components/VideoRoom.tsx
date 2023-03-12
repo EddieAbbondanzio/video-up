@@ -172,19 +172,19 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
 
 const Content = styled.div`
   flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
   background-color: #262626;
 
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  overflow-y: auto;
 `;
 
 const VideoBackground = styled.div`
-  max-width: 1280px;
   flex-grow: 1;
-  display: flex;
-  flex-flow: wrap;
-  flex-direction: column;
-  overflow-y: hidden;
+  flex-shrink: 1;
+  width: 1280px;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
 `;

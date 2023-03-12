@@ -28,9 +28,8 @@ export function Video(props: VideoProps): JSX.Element {
 }
 
 const Container = styled.div`
-  flex-basis: 50%;
-  flex-grow: 1;
-  max-height: 50%;
+  height: 480px;
+  width: 640px;
 
   display: flex;
   align-items: center;
