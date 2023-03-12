@@ -1,33 +1,17 @@
-//@ts-nocheck
+import { JoinRoomRequest, MessageType } from "../../shared/src/ws";
+import { sendResponse } from "../src";
+import { WebSocket } from "ws";
 
-import { getClientWebSocketById, sendJSON } from "../src/index";
-
-test("sendJSON", () => {
-  expect(() => sendJSON(null, {})).toThrow(/ws is null/);
-
+test("sendResponse", () => {
   const ws = {
     send: jest.fn(),
+  } as unknown as WebSocket;
+
+  const req: JoinRoomRequest = {
+    type: MessageType.JoinRoom,
+    roomID: "1",
   };
 
-  sendJSON(ws, { foo: "bar" });
-  expect(ws.send).toHaveBeenCalledWith(JSON.stringify({ foo: "bar" }));
-});
-
-test("getClientWebSocketById", () => {
-  const wss = {
-    clients: new Set([{ id: "1" }, { id: "2" }, { id: "3" }]),
-  };
-
-  expect(() =>
-    getClientWebSocketById(wss, "4").toThrow(/No websocket with ID 4/),
-  );
-
-  expect(() =>
-    getClientWebSocketById(wss, "4", true).not.toThrow(
-      /No websocket with ID 4/,
-    ),
-  );
-
-  const ws1 = getClientWebSocketById(wss, "1");
-  expect(ws1.id).toBe("1");
+  sendResponse(ws, req);
+  expect(ws.send).toHaveBeenCalledWith(JSON.stringify(req));
 });
