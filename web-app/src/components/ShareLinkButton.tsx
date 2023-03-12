@@ -59,7 +59,12 @@ export function ShareButton(props: ShareButtonProps) {
             </div>
 
             <div className="is-flex is-flex-row">
-              <input className="input is-small" value={link} readOnly={true} />
+              <input
+                className="input is-small"
+                value={link}
+                readOnly={true}
+                onClick={ev => (ev.target as HTMLInputElement).select()}
+              />
               <button
                 className="button is-small ml-2"
                 title="Click to copy link"
