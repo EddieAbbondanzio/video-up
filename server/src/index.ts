@@ -1,4 +1,4 @@
-import { Server, WebSocketServer, WebSocket } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
 import { dataSource } from "./db";
 import { nanoid } from "nanoid";
 import { Room } from "./entities/room";

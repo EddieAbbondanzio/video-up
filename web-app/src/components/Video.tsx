@@ -1,13 +1,27 @@
-import React from "react";
-import { MediaState, Peer } from "../media";
+import React, { useEffect, useRef } from "react";
+import { MediaState, Peer } from "../peer";
 
 export interface VideoProps {
   media?: MediaState;
 }
 
 export function Video(props: VideoProps): JSX.Element {
-  // Grab remote tracks.
+  const { media } = props;
+  const videoElRef = useRef<HTMLVideoElement>(null!);
+
+  useEffect(() => {
+    const videoEl = videoElRef.current;
+
+    if (videoEl && media?.video) {
+      videoEl.srcObject = media.stream;
+    }
+  }, [media?.video]);
+
   // Add them to video / audio elements no?
 
-  return <div>VIDEO BLOCK!</div>;
+  return (
+    <div>
+      <video ref={videoElRef} autoPlay={true} playsInline={true} />
+    </div>
+  );
 }

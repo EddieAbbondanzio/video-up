@@ -9,7 +9,6 @@ export async function openWSConnection(url: string): Promise<WebSocket> {
 }
 
 export function sendRequest(ws: WebSocket, req: WebSocketRequest): void {
-  console.log("SENDING REQUEST: ", req);
   const jsonString = JSON.stringify(req);
   ws.send(jsonString);
 }
