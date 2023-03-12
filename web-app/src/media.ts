@@ -30,10 +30,14 @@ export class Peer {
     public remoteParticipantID: string,
     public peerType: PeerType,
   ) {
-    // RTCPeerConnection replaces this with itself in event callbacks
+    console.log("====================================================");
+    console.log("Create new peer for remote ID: ", remoteParticipantID);
+    console.log("====================================================");
+
     this.onNegotiationNeeded = this.onNegotiationNeeded.bind(this);
     this.onIceCandidateCreated = this.onIceCandidateCreated.bind(this);
     this.onRemoteTrack = this.onRemoteTrack.bind(this);
+    this.onSignal = this.onSignal.bind(this);
 
     this.connection = createNewRtcPeerConnection();
     console.log("Peer connection is: ", this.connection);
@@ -142,6 +146,10 @@ export class Peer {
 
       case MessageType.IceCandidate:
         if (response.senderID !== this.remoteParticipantID) {
+          console.log("Got ICE candidate for wrong participant. ", {
+            senderID: response.senderID,
+            remoteID: this.remoteParticipantID,
+          });
           return;
         }
 

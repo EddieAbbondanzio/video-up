@@ -157,7 +157,7 @@ async function main() {
 
             sendResponse(existingParticipantWS, {
               type: MessageType.ParticipantJoined,
-              participantID: existing.id,
+              participantID: sender.id,
               peerType: PeerType.Polite,
             });
           }
