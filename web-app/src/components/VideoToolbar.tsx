@@ -64,8 +64,5 @@ export function VideoToolbar(props: VideoToolbarProps): JSX.Element {
 
 const FixedOnBottom = styled.div`
   height: 80px;
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100%;
 `;

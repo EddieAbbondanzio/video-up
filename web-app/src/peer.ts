@@ -51,20 +51,10 @@ export class Peer {
       this.onIceCandidateCreated,
     );
 
-    // TODO: REMOVE!
-    this.connection.addEventListener("signalingstatechange", ev => {
-      console.log("SIGNAL STATE CHANGE!", ev.target);
-    });
-
-    this.connection.addEventListener("connectionstatechange", ev => {
-      console.log("CONNECTION STATE CHANGE: ", ev.target);
-    });
-
     ws.addEventListener("message", this.onSignal);
   }
 
   destroy(): void {
-    console.log("DESTROY() was called");
     this.connection.removeEventListener("track", this.onRemoteTrack);
     this.connection.removeEventListener(
       "negotiationneeded",
@@ -80,7 +70,6 @@ export class Peer {
 
   addLocalMedia(media: MediaState): void {
     const { video, audio, stream } = media;
-    console.log("Added local media!", media);
 
     if (video) {
       this.connection.addTrack(video, stream);
@@ -96,6 +85,8 @@ export class Peer {
     const [stream] = streams;
     this.remoteMedia = { stream };
 
+    console.log("on remote track: ", { track, stream });
+
     switch (track.kind) {
       case "video":
       case "audio":
@@ -110,12 +101,10 @@ export class Peer {
   }
 
   private async onNegotiationNeeded(): Promise<void> {
-    console.log("onNegotiationNeeded", this);
     try {
       this.makingOffer = true;
       await this.connection.setLocalDescription();
 
-      console.log("Made offer");
       await sendRequest(this.ws, {
         type: MessageType.SDPDescription,
         destinationID: this.remoteParticipantID,
@@ -172,10 +161,6 @@ export class Peer {
       (this.makingOffer || this.connection.signalingState !== "stable");
 
     this.ignoreOffer = this.peerType === PeerType.Impolite && collisionDetected;
-    console.log("onDescriptionReceived", {
-      collisionDetected,
-      ignoreOffer: this.ignoreOffer,
-    });
     if (this.ignoreOffer) {
       return;
     }
@@ -233,8 +218,9 @@ export function createNewRtcPeerConnection(): RTCPeerConnection {
 
 export async function startLocalVideoAndAudio(): Promise<MediaState> {
   const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: "user" },
-    audio: true,
+    video: true,
+    // TODO: Re-add audio
+    audio: false,
   });
 
   const [video] = stream.getVideoTracks();

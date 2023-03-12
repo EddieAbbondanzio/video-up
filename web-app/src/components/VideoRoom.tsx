@@ -67,18 +67,13 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
 
     (async () => {
       const media = await startLocalVideoAndAudio();
-      console.log("Started camera. Got media: ", media);
       setLocalMedia(media);
-
-      if (participantID == null) {
-        throw new Error("Local user wasn't given a participant ID.");
-      }
 
       for (const peer of peers) {
         peer.addLocalMedia(media);
       }
     })();
-  }, [roomID, hasConfirmedJoin, participantID]);
+  }, [roomID, hasConfirmedJoin, participantID, peers]);
 
   // Listen for websocket responses
   useEffect(() => {
@@ -141,13 +136,14 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
   }, [ws]);
 
   const videos = useMemo(() => {
+    console.log("rendering video");
     let videos: JSX.Element[] = [];
 
     if (hasConfirmedJoin || isHost) {
       videos.push(<Video key={participantID} media={localMedia} />);
 
       for (const peer of peers) {
-        console.log("PEER REMOTE MEDIA: ", peer);
+        console.log("PEER REMOTE MEDIA: ", peer.remoteMedia);
         videos.push(
           <Video key={peer.remoteParticipantID} media={peer.remoteMedia} />,
         );
@@ -164,17 +160,31 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
   };
 
   return (
-    <VideoBackground>
+    <Content>
       {!isHost && !hasConfirmedJoin && <JoinModal onJoin={onJoin} />}
-      <div className="video-container">{videos}</div>
+      <VideoBackground>{videos}</VideoBackground>
       {roomID && (
         <VideoToolbar isHost={isHost} roomID={roomID} domain={domain} />
       )}
-    </VideoBackground>
+    </Content>
   );
 }
 
-const VideoBackground = styled.div`
+const Content = styled.div`
   flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
   background-color: #262626;
+
+  align-items: center;
+`;
+
+const VideoBackground = styled.div`
+  max-width: 1280px;
+  flex-grow: 1;
+  display: flex;
+  flex-flow: wrap;
+  flex-direction: column;
+  overflow-y: hidden;
 `;
