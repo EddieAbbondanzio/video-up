@@ -19,8 +19,6 @@ export function Video(props: VideoProps): JSX.Element {
     }
   }, [media?.video, media?.stream]);
 
-  // Add them to video / audio elements no?
-
   return (
     <Container>
       <video ref={videoElRef} autoPlay={true} playsInline={true} />

@@ -22,6 +22,8 @@ export class Peer {
   makingOffer = false;
   ignoreOffer = false;
 
+  onRemoteTrackReceived?: (track: MediaStreamTrack) => void;
+
   // Ice Candidates can't be added to an RTC connection until after the SDP description
   // has been received so we temporary hold any candidates we received prior to
   // the offer.
@@ -91,6 +93,10 @@ export class Peer {
       case "video":
       case "audio":
         this.remoteMedia[track.kind] = track;
+
+        if (this.onRemoteTrackReceived) {
+          this.onRemoteTrackReceived(track);
+        }
         break;
 
       default:

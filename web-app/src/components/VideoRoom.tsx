@@ -134,6 +134,15 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
     };
   }, [ws, localMedia, peers]);
 
+  // Listen for track changes, and re-render when needed.
+  useEffect(() => {
+    for (const peer of peers) {
+      peer.onRemoteTrackReceived = () => {
+        setPeers([...peers]);
+      };
+    }
+  }, [peers]);
+
   const videos = useMemo(() => {
     const videos: JSX.Element[] = [];
 
@@ -156,6 +165,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
     }
   };
 
+  console.log("Render VideoRoom!");
   return (
     <Content>
       {!isHost && !hasConfirmedJoin && <JoinModal onJoin={onJoin} />}
