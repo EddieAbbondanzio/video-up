@@ -19,8 +19,8 @@ export interface MediaState {
 
 export class Peer {
   connection: RTCPeerConnection;
-  makingOffer: boolean = false;
-  ignoreOffer: boolean = false;
+  makingOffer = false;
+  ignoreOffer = false;
 
   // Ice Candidates can't be added to an RTC connection until after the SDP description
   // has been received so we temporary hold any candidates we received prior to
@@ -83,9 +83,9 @@ export class Peer {
 
   private onRemoteTrack({ track, streams }: RTCTrackEvent): void {
     const [stream] = streams;
-    this.remoteMedia = { stream };
-
-    console.log("on remote track: ", { track, stream });
+    if (!this.remoteMedia) {
+      this.remoteMedia = { stream };
+    }
 
     switch (track.kind) {
       case "video":

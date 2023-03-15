@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import styled from "styled-components";
-import { MediaState, Peer } from "../peer";
+import { MediaState } from "../peer";
 
 export interface VideoProps {
   media?: MediaState;
@@ -8,6 +8,7 @@ export interface VideoProps {
 
 export function Video(props: VideoProps): JSX.Element {
   const { media } = props;
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const videoElRef = useRef<HTMLVideoElement>(null!);
 
   useEffect(() => {
@@ -16,7 +17,7 @@ export function Video(props: VideoProps): JSX.Element {
     if (videoEl && media?.video) {
       videoEl.srcObject = media.stream;
     }
-  }, [media?.video]);
+  }, [media?.video, media?.stream]);
 
   // Add them to video / audio elements no?
 

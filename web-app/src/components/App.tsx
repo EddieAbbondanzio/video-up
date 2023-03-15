@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React from "react";
 import { useEffect, useState } from "react";
 import { NavBar } from "./NavBar";
 import { VideoRoom } from "./VideoRoom";
@@ -13,11 +13,11 @@ export function App(props: AppProps) {
 
   const [showWelcome, setShowWelcome] = useState(true);
   useEffect(() => {
-    let url = new URL(window.location.href);
+    const url = new URL(window.location.href);
     if (url.pathname !== "/") {
       setShowWelcome(false);
     }
-  }, [window.location.href]);
+  }, []);
 
   const onHost = () => {
     setShowWelcome(false);

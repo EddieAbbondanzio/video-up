@@ -1,5 +1,4 @@
 import React from "react";
-import styled from "styled-components";
 
 export interface JoinModal {
   onJoin: () => void;
@@ -19,7 +18,7 @@ export function JoinModal(props: JoinModal): JSX.Element {
         <div className="card">
           <div className="card-content">
             <p className="mb-2">
-              You've been invited to join a video call! Click below to join:
+              You{"'"}ve been invited to join a video call! Click below to join:
             </p>
             <button className="button is-success" onClick={onJoin}>
               Join

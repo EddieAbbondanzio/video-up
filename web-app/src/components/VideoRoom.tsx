@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { VideoToolbar } from "./VideoToolbar";
 import { MessageType, WebSocketResponse } from "../../../shared/src/ws";
 import { sendRequest } from "../ws";
@@ -14,7 +14,7 @@ export interface VideoRoomProps {
 export function VideoRoom(props: VideoRoomProps): JSX.Element {
   const { ws } = props;
 
-  const [domain, setDomain] = useState<string>(undefined!);
+  const [domain, setDomain] = useState<string>("");
   const [roomID, setRoomID] = useState<string | undefined>();
   const [participantID, setParticipantID] = useState<string | undefined>();
   const [isHost, setIsHost] = useState<boolean>(false);
@@ -27,7 +27,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
   useEffect(() => {
     let existingRoomID;
 
-    let url = new URL(window.location.href);
+    const url = new URL(window.location.href);
     if (url.pathname !== "/") {
       existingRoomID = url.pathname.slice(1);
     }
@@ -38,7 +38,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
       });
     } else if (hasConfirmedJoin) {
       if (!existingRoomID) {
-        throw new Error(`No roomID to join as participant.`);
+        throw new Error("No roomID to join as participant.");
       }
 
       sendRequest(ws, {
@@ -49,7 +49,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
       return;
     }
 
-    let userIsHost = existingRoomID == null;
+    const userIsHost = existingRoomID == null;
 
     setRoomID(existingRoomID);
     setIsHost(userIsHost);
@@ -57,7 +57,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
       setHasConfirmedJoin(true);
     }
     setDomain(url.href);
-  }, [window.location.href, hasConfirmedJoin]);
+  }, [hasConfirmedJoin, ws]);
 
   // Start camera / mic once user confirms the join
   useEffect(() => {
@@ -80,6 +80,8 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
     const onMessage = (ev: MessageEvent) => {
       const response: WebSocketResponse = JSON.parse(ev.data);
 
+      let peer: Peer | undefined;
+
       switch (response.type) {
         case MessageType.CreateRoom:
           setRoomID(response.roomID);
@@ -95,24 +97,21 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
           break;
 
         case MessageType.ParticipantJoined:
-          const newPeer = new Peer(
-            ws,
-            response.participantID,
-            response.peerType,
-          );
+          peer = new Peer(ws, response.participantID, response.peerType);
 
           if (localMedia) {
-            newPeer.addLocalMedia(localMedia);
+            peer.addLocalMedia(localMedia);
           }
 
-          setPeers(existing => [...existing, newPeer]);
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          setPeers(existing => [...existing, peer!]);
           break;
 
         case MessageType.ParticipantLeft:
-          const peerThatLeft = peers.find(
+          peer = peers.find(
             p => p.remoteParticipantID === response.participantID,
           );
-          if (peerThatLeft == null) {
+          if (peer == null) {
             throw new Error(
               `No peer found for remote participant (ID: ${response.participantID})`,
             );
@@ -124,7 +123,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
             ),
           );
 
-          peerThatLeft.destroy();
+          peer.destroy();
           break;
       }
     };
@@ -133,17 +132,15 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
     return () => {
       ws.removeEventListener("message", onMessage);
     };
-  }, [ws]);
+  }, [ws, localMedia, peers]);
 
   const videos = useMemo(() => {
-    console.log("rendering video");
-    let videos: JSX.Element[] = [];
+    const videos: JSX.Element[] = [];
 
     if (hasConfirmedJoin || isHost) {
       videos.push(<Video key={participantID} media={localMedia} />);
 
       for (const peer of peers) {
-        console.log("PEER REMOTE MEDIA: ", peer.remoteMedia);
         videos.push(
           <Video key={peer.remoteParticipantID} media={peer.remoteMedia} />,
         );
@@ -151,7 +148,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
     }
 
     return videos;
-  }, [localMedia, peers]);
+  }, [localMedia, peers, hasConfirmedJoin, isHost, participantID]);
 
   const onJoin = () => {
     if (!hasConfirmedJoin) {
