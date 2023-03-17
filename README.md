@@ -2,18 +2,33 @@
 
 Video Up let's anyone host live video calls amongst themselves and up to 3 friends. Video calls are joined via magic links, and video data is transmitted via P2P and supports most modern browsers.
 
+Tech wise it's built using vanilla WebRTC, React, TypeScript, WebSockets and SQLite.
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/EddieAbbondanzio/video-up/main/docs/demo.png">
+</p>
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/EddieAbbondanzio/video-up/main/docs/flow.gif">
+</p>
+
 ## Why I Built It
 
 I thought this would be a fun little experiment to dive further into WebRTC with.
 
 ## Future Improvements
 
-Some things that could be improved on later on include
+Some potential ideas for features / improvements
 
-- Ability to change video / audio sources while on a call.
-- Ability to leave room without having to close the tab.
-
-In terms of approach there's some refactoring that should be done to change how call participants are tracked. It seems odd to track them under `hostID`, `guestID`, and a more scalable approach such as a `call_participants` table should be explored.
+- Better mobile UI
+- Dynamically resize videos based on # of participants in the room
+- Allow changing active camera / microphone
+- Private video calls that require a password to join.
+- participant names
+- Chat title + description that will be displayed when someone opens a link
+- Video preview that lets user setup their camera / mic before joining.
+- Extra permissions for hosts that let's them kick or mute users.
+- Screen sharing
 
 ## Dev
 
