@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { VideoToolbar } from "./VideoToolbar";
 import { MessageType, WebSocketResponse } from "../../../shared/src/ws";
 import { sendRequest } from "../ws";
@@ -69,19 +69,28 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
   }, [hasConfirmedJoin, ws]);
 
   // Start camera / mic once user confirms the join
+  const startCameraPromise = useRef<Promise<MediaState> | undefined>(undefined);
   useEffect(() => {
-    if (!hasConfirmedJoin || !roomID || !participantID || localMedia) {
+    if (startCameraPromise.current) {
+      return;
+    }
+
+    if (!hasConfirmedJoin || !roomID || !participantID) {
       return;
     }
 
     (async () => {
-      const media = await startLocalVideoAndAudio();
+      startCameraPromise.current = startLocalVideoAndAudio();
+      const media = await startCameraPromise.current;
+      console.log("=-===-=");
+      console.log("STARTED CAMERA");
 
       for (const peer of peers) {
         peer.setLocalMedia(media);
       }
 
       setLocalMedia(media);
+      console.log("=-===-=");
     })();
   }, [roomID, hasConfirmedJoin, participantID, peers, localMedia]);
 
@@ -191,16 +200,10 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
 
   const remoteUserMedia = Object.entries(remoteMedia);
   const videos = useMemo(() => {
-    const videos: JSX.Element[] = [];
-
-    console.log("Videos useMemo called!", {
-      participantID,
-      hasConfirmedJoin,
-      isHost,
-    });
+    const vids: JSX.Element[] = [];
 
     if (participantID && (hasConfirmedJoin || isHost)) {
-      videos.push(
+      vids.push(
         <Video
           key={participantID}
           remote={false}
@@ -209,15 +212,17 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
         />,
       );
 
-      console.log("Curr remote media size: ", remoteUserMedia);
+      console.log("videos useMemo regenerated");
       for (const [pID, media] of remoteUserMedia) {
-        videos.push(
+        console.log("push video ", pID);
+        vids.push(
           <Video key={pID} remote={true} participantID={pID} media={media} />,
         );
       }
+      console.log("videos useMemo done!");
     }
 
-    return videos;
+    return vids;
   }, [remoteUserMedia, hasConfirmedJoin, isHost, localMedia, participantID]);
 
   const onJoin = () => {
@@ -227,6 +232,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
   };
 
   console.log("VideoRoom.render. Curr video length: ", videos.length);
+  console.log(videos);
   return (
     <Content>
       {!isHost && !hasConfirmedJoin && <JoinModal onJoin={onJoin} />}
