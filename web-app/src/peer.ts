@@ -77,7 +77,18 @@ export class Peer extends EventTarget {
     this.ws.removeEventListener("message", this.onSignal);
   }
 
-  addLocalMedia(media: MediaState): void {
+  setLocalMedia(media: MediaState): void {
+    console.log("Peer.setLocalMedia", {
+      video: media.video,
+      audio: media.audio,
+    });
+
+    // Clear out any old tracks
+    const senders = this.connection.getSenders();
+    for (const sender of senders) {
+      this.connection.removeTrack(sender);
+    }
+
     const { video, audio, stream } = media;
 
     if (video) {
@@ -98,7 +109,7 @@ export class Peer extends EventTarget {
       return;
     }
 
-    console.log("GOT REMOTE TRACK: ", track.kind);
+    console.log("Peer.onRemoteTrack received: ", track.kind);
     const ev = new CustomEvent(PeerEventType.OnRemoteTrack, {
       detail: { track, stream },
     });
@@ -224,8 +235,7 @@ export function createNewRtcPeerConnection(): RTCPeerConnection {
 export async function startLocalVideoAndAudio(): Promise<MediaState> {
   const stream = await navigator.mediaDevices.getUserMedia({
     video: true,
-    // TODO: Re-add audio
-    audio: false,
+    audio: true,
   });
 
   const [video] = stream.getVideoTracks();

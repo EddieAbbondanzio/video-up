@@ -13,50 +13,27 @@ export function Video(props: VideoProps): JSX.Element {
   const { media } = props;
   const { video, audio } = media ?? {};
 
-  // Listen for video changes
-  useEffect(() => {
-    console.log("=======================================================");
-    console.log({ participantID: props.participantID, remote: props.remote });
-    console.log("Audio change detected: ", {
-      enabled: video?.enabled,
-      muted: video?.muted,
-      ready: video?.readyState,
-    });
-  }, [
-    props.participantID,
-    props.remote,
-    video?.enabled,
-    video?.muted,
-    video?.readyState,
-  ]);
-
-  // Listen for audio changes
-  useEffect(() => {
-    console.log("=======================================================");
-    console.log({ participantID: props.participantID, remote: props.remote });
-    console.log("Audio change detected: ", {
-      enabled: audio?.enabled,
-      muted: audio?.muted,
-      ready: audio?.readyState,
-    });
-  }, [
-    props.participantID,
-    props.remote,
-    audio?.enabled,
-    audio?.muted,
-    audio?.readyState,
-  ]);
-
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const videoElRef = useRef<HTMLVideoElement>(null!);
 
-  // useEffect(() => {
-  //   const videoEl = videoElRef.current;
+  console.log(
+    `Video comp updating for  ${props.participantID}, remote? ${props.remote}`,
+  );
+  useEffect(() => {
+    const videoEl = videoElRef.current;
 
-  //   if (videoEl && media?.video) {
-  //     videoEl.srcObject = media.stream;
-  //   }
-  // }, [media?.video, media?.stream]);
+    const ms = new MediaStream();
+    if (video) {
+      console.log("Video added video track");
+      ms.addTrack(video);
+    }
+    if (audio) {
+      console.log("Video added audio track");
+      ms.addTrack(audio);
+    }
+
+    videoEl.srcObject = ms;
+  }, [video, audio]);
 
   return (
     <Container>

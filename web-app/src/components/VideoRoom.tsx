@@ -70,19 +70,20 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
 
   // Start camera / mic once user confirms the join
   useEffect(() => {
-    if (!hasConfirmedJoin || !roomID || !participantID) {
+    if (!hasConfirmedJoin || !roomID || !participantID || localMedia) {
       return;
     }
 
     (async () => {
       const media = await startLocalVideoAndAudio();
-      setLocalMedia(media);
 
       for (const peer of peers) {
-        peer.addLocalMedia(media);
+        peer.setLocalMedia(media);
       }
+
+      setLocalMedia(media);
     })();
-  }, [roomID, hasConfirmedJoin, participantID, peers]);
+  }, [roomID, hasConfirmedJoin, participantID, peers, localMedia]);
 
   // Listen for websocket responses
   useEffect(() => {
@@ -106,11 +107,13 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
           break;
 
         case MessageType.ParticipantJoined:
+          console.log("================");
           peer = new Peer(ws, response.participantID, response.peerType);
-
+          console.log("new peer!");
           if (localMedia) {
-            peer.addLocalMedia(localMedia);
+            peer.setLocalMedia(localMedia);
           }
+          console.log("=============");
 
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           setPeers(existing => [...existing, peer!]);
@@ -170,6 +173,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
             throw new Error(`Invalid remote track ${track.kind} received.`);
         }
 
+        console.log("Room.onRemoteTrack; ", existing);
         return existing;
       });
     };
@@ -185,8 +189,15 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
     };
   }, [peers]);
 
+  const remoteUserMedia = Object.entries(remoteMedia);
   const videos = useMemo(() => {
     const videos: JSX.Element[] = [];
+
+    console.log("Videos useMemo called!", {
+      participantID,
+      hasConfirmedJoin,
+      isHost,
+    });
 
     if (participantID && (hasConfirmedJoin || isHost)) {
       videos.push(
@@ -198,7 +209,8 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
         />,
       );
 
-      for (const [pID, media] of Object.entries(remoteMedia)) {
+      console.log("Curr remote media size: ", remoteUserMedia);
+      for (const [pID, media] of remoteUserMedia) {
         videos.push(
           <Video key={pID} remote={true} participantID={pID} media={media} />,
         );
@@ -206,7 +218,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
     }
 
     return videos;
-  }, [remoteMedia, hasConfirmedJoin, isHost, localMedia, participantID]);
+  }, [remoteUserMedia, hasConfirmedJoin, isHost, localMedia, participantID]);
 
   const onJoin = () => {
     if (!hasConfirmedJoin) {
@@ -214,7 +226,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
     }
   };
 
-  console.log("Render VideoRoom!", remoteMedia);
+  console.log("VideoRoom.render. Curr video length: ", videos.length);
   return (
     <Content>
       {!isHost && !hasConfirmedJoin && <JoinModal onJoin={onJoin} />}
