@@ -3,14 +3,13 @@ import styled from "styled-components";
 import { MediaState } from "../peer";
 
 export interface VideoProps {
-  // participantID / remote are just for debugging right now...
   participantID: string;
   remote: boolean;
   media?: MediaState;
 }
 
 export function Video(props: VideoProps): JSX.Element {
-  const { media } = props;
+  const { media, remote } = props;
   const { video, audio } = media ?? {};
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -26,12 +25,13 @@ export function Video(props: VideoProps): JSX.Element {
     if (video) {
       ms.addTrack(video);
     }
-    if (audio) {
+    // Only add audio track if it's a remote participant.
+    if (audio && remote) {
       ms.addTrack(audio);
     }
 
     videoEl.srcObject = ms;
-  }, [video, audio]);
+  }, [video, audio, remote]);
 
   return (
     <Container>
