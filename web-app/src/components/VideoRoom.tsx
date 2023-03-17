@@ -148,6 +148,23 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
           });
           peer.destroy();
           break;
+
+        case MessageType.RoomClosed:
+          setPeers(peers => {
+            for (const peer of peers) {
+              peer.destroy();
+            }
+
+            return [];
+          });
+          setRemoteMedia({});
+
+          // TODO: Come up with better UI for closing room.
+          setTimeout(() => {
+            alert("Room was closed due to host leaving.");
+            window.location.replace("/");
+          }, 30);
+          break;
       }
     };
     ws.addEventListener("message", onMessage);
