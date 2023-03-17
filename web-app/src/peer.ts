@@ -109,7 +109,6 @@ export class Peer extends EventTarget {
       return;
     }
 
-    console.log("Peer.onRemoteTrack received: ", track.kind);
     const ev = new CustomEvent(PeerEventType.OnRemoteTrack, {
       detail: { track, stream },
     });
