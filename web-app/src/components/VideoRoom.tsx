@@ -247,12 +247,36 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
     }
   };
 
+  const onVideoToggled = (isEnabled: boolean) => {
+    const { video } = localMedia ?? {};
+    if (video) {
+      video.enabled = isEnabled;
+      setLocalMedia({ ...localMedia! });
+    }
+  };
+
+  const onAudioToggled = (isEnabled: boolean) => {
+    const { audio } = localMedia ?? {};
+    if (audio) {
+      audio.enabled = isEnabled;
+      setLocalMedia({ ...localMedia! });
+    }
+  };
+
   return (
     <Content>
       {!isHost && !hasConfirmedJoin && <JoinModal onJoin={onJoin} />}
       <VideoBackground>{videos}</VideoBackground>
       {roomID && (
-        <VideoToolbar isHost={isHost} roomID={roomID} domain={domain} />
+        <VideoToolbar
+          isHost={isHost}
+          roomID={roomID}
+          domain={domain}
+          isVideoEnabled={localMedia?.video?.enabled ?? false}
+          isAudioEnabled={localMedia?.audio?.enabled ?? false}
+          onVideoToggled={onVideoToggled}
+          onAudioToggled={onAudioToggled}
+        />
       )}
     </Content>
   );

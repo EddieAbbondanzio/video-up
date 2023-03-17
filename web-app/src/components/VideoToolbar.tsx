@@ -7,20 +7,29 @@ export interface VideoToolbarProps {
   domain: string;
   isHost: boolean;
   roomID?: string;
+  isVideoEnabled: boolean;
+  isAudioEnabled: boolean;
+  onVideoToggled: (isEnabled: boolean) => void;
+  onAudioToggled: (isEnabled: boolean) => void;
 }
 
 export function VideoToolbar(props: VideoToolbarProps): JSX.Element {
-  const { domain, isHost, roomID } = props;
-
-  const [isCameraStopped, setIsCameraStopped] = useState(true);
-  const [isMicMuted, setIsMicMuted] = useState(true);
+  const {
+    domain,
+    isHost,
+    roomID,
+    isVideoEnabled,
+    isAudioEnabled,
+    onVideoToggled,
+    onAudioToggled,
+  } = props;
 
   const onCameraButtonClick = () => {
-    setIsCameraStopped(!isCameraStopped);
+    onVideoToggled(!isVideoEnabled);
   };
 
   const onMicButtonClick = () => {
-    setIsMicMuted(!isMicMuted);
+    onAudioToggled(!isAudioEnabled);
   };
 
   const onLeaveRoomClick = () => {
@@ -39,13 +48,15 @@ export function VideoToolbar(props: VideoToolbarProps): JSX.Element {
     <FixedOnBottom className="has-background-dark has-text-white is-flex is-align-items-center is-justify-content-center">
       <div>
         <VideoToolbarButton
-          icon={isCameraStopped ? "fas fa-video-slash" : "fas fa-video"}
-          title={isCameraStopped ? "Start video" : "Stop video"}
+          icon={isVideoEnabled ? "fas fa-video" : "fas fa-video-slash"}
+          title={isVideoEnabled ? "Stop video" : "Start video"}
           onClick={onCameraButtonClick}
         />
         <VideoToolbarButton
-          icon={isMicMuted ? "fas fa-microphone-slash" : "fas fa-microphone"}
-          title={isMicMuted ? "Unmute mic" : "Mute mic"}
+          icon={
+            isAudioEnabled ? "fas fa-microphone" : "fas fa-microphone-slash"
+          }
+          title={isAudioEnabled ? "Mute mic" : "Unmute mic"}
           onClick={onMicButtonClick}
         />
 

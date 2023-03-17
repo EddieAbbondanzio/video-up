@@ -15,9 +15,6 @@ export function Video(props: VideoProps): JSX.Element {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const videoElRef = useRef<HTMLVideoElement>(null!);
 
-  console.log(
-    `Video comp updating for  ${props.participantID}, remote? ${props.remote}`,
-  );
   useEffect(() => {
     const videoEl = videoElRef.current;
 
