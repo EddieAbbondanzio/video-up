@@ -12,7 +12,8 @@
     "strictNullChecks": true,
     "experimentalDecorators": true,
     "jsx": "react",
-    "typeRoots" : ["node_modules/@types", "src/types"]
+    "typeRoots" : ["node_modules/@types", "src/types"],
+    "lib": ["ES2017", "DOM"]
   },
   "references": [{ "path": "../shared"}]
 }

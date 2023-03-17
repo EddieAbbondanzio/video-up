@@ -11,32 +11,39 @@ export const STUN_SERVERS = [
   "stun4.l.google.com:19302",
 ];
 
+const VALID_TRACK_TYPES = ["video", "audio"];
+
+export enum PeerEventType {
+  OnRemoteTrack = "onremotetrack",
+}
+
+export type OnRemoteTrackEvent = CustomEvent<{
+  track: MediaStreamTrack;
+  stream: MediaStream;
+}> & { target: Peer };
+
 export interface MediaState {
   video?: MediaStreamTrack;
   audio?: MediaStreamTrack;
   stream: MediaStream;
 }
 
-export class Peer {
+export class Peer extends EventTarget {
   connection: RTCPeerConnection;
-  makingOffer = false;
-  ignoreOffer = false;
-
-  onRemoteTrackReceived?: (track: MediaStreamTrack) => void;
+  private makingOffer = false;
+  private ignoreOffer = false;
 
   // Ice Candidates can't be added to an RTC connection until after the SDP description
   // has been received so we temporary hold any candidates we received prior to
   // the offer.
-  pendingIceCandidates: RTCIceCandidateInit[] = [];
-
-  localMedia?: MediaState;
-  remoteMedia?: MediaState;
+  private pendingIceCandidates: RTCIceCandidateInit[] = [];
 
   constructor(
-    public ws: WebSocket,
+    private ws: WebSocket,
     public remoteParticipantID: string,
     public peerType: PeerType,
   ) {
+    super();
     this.onNegotiationNeeded = this.onNegotiationNeeded.bind(this);
     this.onIceCandidateCreated = this.onIceCandidateCreated.bind(this);
     this.onRemoteTrack = this.onRemoteTrack.bind(this);
@@ -79,31 +86,23 @@ export class Peer {
     if (audio) {
       this.connection.addTrack(audio, stream);
     }
-
-    this.localMedia = media;
   }
 
   private onRemoteTrack({ track, streams }: RTCTrackEvent): void {
     const [stream] = streams;
-    if (!this.remoteMedia) {
-      this.remoteMedia = { stream };
+
+    if (!VALID_TRACK_TYPES.includes(track.kind)) {
+      console.warn(
+        `onRemoteTrack received unknown track kind: ${track.kind}. Ignoring.`,
+      );
+      return;
     }
 
-    switch (track.kind) {
-      case "video":
-      case "audio":
-        this.remoteMedia[track.kind] = track;
-
-        if (this.onRemoteTrackReceived) {
-          this.onRemoteTrackReceived(track);
-        }
-        break;
-
-      default:
-        console.warn(
-          `onRemoteTrack received unknown track kind: ${track.kind}. Ignoring.`,
-        );
-    }
+    console.log("GOT REMOTE TRACK: ", track.kind);
+    const ev = new CustomEvent(PeerEventType.OnRemoteTrack, {
+      detail: { track, stream },
+    });
+    this.dispatchEvent(ev);
   }
 
   private async onNegotiationNeeded(): Promise<void> {
@@ -217,7 +216,7 @@ export class Peer {
 
 export function createNewRtcPeerConnection(): RTCPeerConnection {
   return new RTCPeerConnection({
-    //@ts-ignore
+    //@ts-expect-error typo in types...
     iceservers: STUN_SERVERS.map(s => ({ urls: s })),
   });
 }

@@ -12,6 +12,7 @@
     "strictNullChecks": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "lib": ["ES2017", "DOM"]
   },
   "references": [{ "path": "../shared"}]
 }

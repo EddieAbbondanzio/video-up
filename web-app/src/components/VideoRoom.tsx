@@ -4,7 +4,13 @@ import { MessageType, WebSocketResponse } from "../../../shared/src/ws";
 import { sendRequest } from "../ws";
 import { JoinModal } from "./JoinModal";
 import styled from "styled-components";
-import { MediaState, Peer, startLocalVideoAndAudio } from "../peer";
+import {
+  MediaState,
+  OnRemoteTrackEvent,
+  Peer,
+  PeerEventType,
+  startLocalVideoAndAudio,
+} from "../peer";
 import { Video } from "./Video";
 
 export interface VideoRoomProps {
@@ -22,6 +28,9 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
 
   const [localMedia, setLocalMedia] = useState<MediaState | undefined>();
   const [peers, setPeers] = useState<Peer[]>([]);
+  const [remoteMedia, setRemoteMedia] = useState<Record<string, MediaState>>(
+    {},
+  );
 
   // Initialize room whenever the URL changes
   useEffect(() => {
@@ -134,30 +143,70 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
     };
   }, [ws, localMedia, peers]);
 
-  // Listen for track changes, and re-render when needed.
+  // Listen for tracks
   useEffect(() => {
+    const onRemoteTrack = (ev: Event) => {
+      const trackEvent = ev as OnRemoteTrackEvent;
+      const { track, stream } = trackEvent.detail;
+
+      const peer = trackEvent.target;
+      const peerID = peer.remoteParticipantID;
+
+      setRemoteMedia(existing => {
+        if (existing[peerID] == null) {
+          existing[peerID] = { stream };
+        }
+
+        switch (track.kind) {
+          case "video":
+            existing[peerID].video = track;
+            break;
+
+          case "audio":
+            existing[peerID].audio = track;
+            break;
+
+          default:
+            throw new Error(`Invalid remote track ${track.kind} received.`);
+        }
+
+        return existing;
+      });
+    };
+
     for (const peer of peers) {
-      peer.onRemoteTrackReceived = () => {
-        setPeers([...peers]);
-      };
+      peer.addEventListener(PeerEventType.OnRemoteTrack, onRemoteTrack);
     }
+
+    return () => {
+      for (const peer of peers) {
+        peer.removeEventListener(PeerEventType.OnRemoteTrack, onRemoteTrack);
+      }
+    };
   }, [peers]);
 
   const videos = useMemo(() => {
     const videos: JSX.Element[] = [];
 
-    if (hasConfirmedJoin || isHost) {
-      videos.push(<Video key={participantID} media={localMedia} />);
+    if (participantID && (hasConfirmedJoin || isHost)) {
+      videos.push(
+        <Video
+          key={participantID}
+          remote={false}
+          participantID={participantID}
+          media={localMedia}
+        />,
+      );
 
-      for (const peer of peers) {
+      for (const [pID, media] of Object.entries(remoteMedia)) {
         videos.push(
-          <Video key={peer.remoteParticipantID} media={peer.remoteMedia} />,
+          <Video key={pID} remote={true} participantID={pID} media={media} />,
         );
       }
     }
 
     return videos;
-  }, [localMedia, peers, hasConfirmedJoin, isHost, participantID]);
+  }, [remoteMedia, hasConfirmedJoin, isHost, localMedia, participantID]);
 
   const onJoin = () => {
     if (!hasConfirmedJoin) {
@@ -165,7 +214,7 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
     }
   };
 
-  console.log("Render VideoRoom!");
+  console.log("Render VideoRoom!", remoteMedia);
   return (
     <Content>
       {!isHost && !hasConfirmedJoin && <JoinModal onJoin={onJoin} />}
@@ -179,7 +228,8 @@ export function VideoRoom(props: VideoRoomProps): JSX.Element {
 
 const Content = styled.div`
   flex-grow: 1;
-  background-color: #262626;
+  background-color: gray;
+  // background-color: #262626;
 
   display: flex;
   flex-direction: column;
